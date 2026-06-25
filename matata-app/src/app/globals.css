@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+:root {
+  --matata-blue: #006EB5;
+  --matata-navy: #232E3D;
+  --matata-azure: #0093D9;
+  --matata-light-blue: #B5D5F5;
+  --matata-red: #EE402D;
+  --matata-yellow: #FBC412;
+  --matata-green: #6DE354;
+  --matata-gray: #55606E;
+  --matata-light-gray: #EDEFF0;
+  --background: #FFFFFF;
+  --foreground: #232E3D;
+}
+
+@theme inline {
+  --color-matata-blue: var(--matata-blue);
+  --color-matata-navy: var(--matata-navy);
+  --color-matata-azure: var(--matata-azure);
+  --color-matata-light-blue: var(--matata-light-blue);
+  --color-matata-red: var(--matata-red);
+  --color-matata-yellow: var(--matata-yellow);
+  --color-matata-green: var(--matata-green);
+  --color-matata-gray: var(--matata-gray);
+  --color-matata-light-gray: var(--matata-light-gray);
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
