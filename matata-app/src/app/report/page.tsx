@@ -115,15 +115,15 @@ export default function ReportPage() {
     setSubmitError('');
 
     const fields = {
-      crisis_type: form.crisis_type as string,
-      infrastructure_type: form.infrastructure_type as string,
-      severity: form.damage_severity as string,
+      crisis_type: form.crisis_type as CrisisType,
+      infrastructure_type: form.infrastructure_type as InfrastructureType,
+      damage_severity: form.damage_severity as DamageSeverity,
       offline_queued_at: new Date().toISOString(),
-      ...(form.lat !== null ? { latitude: form.lat, longitude: form.lng! } : {}),
+      ...(form.lat !== null ? { lat: form.lat, lng: form.lng! } : {}),
       ...(form.landmark_description ? { landmark_description: form.landmark_description } : {}),
       ...(form.electricity_status ? { electricity_status: form.electricity_status } : {}),
       ...(form.health_services_status ? { health_services_status: form.health_services_status } : {}),
-      ...(form.most_pressing_needs ? { immediate_needs: form.most_pressing_needs } : {}),
+      ...(form.most_pressing_needs ? { most_pressing_needs: form.most_pressing_needs } : {}),
       ...(form.debris_clearing_needed !== null ? { debris_clearing_needed: form.debris_clearing_needed } : {}),
     };
 
@@ -138,11 +138,7 @@ export default function ReportPage() {
     }
 
     try {
-      const fd = new FormData();
-      Object.entries(fields).forEach(([k, v]) => { if (v !== undefined) fd.append(k, String(v)); });
-      if (photo) fd.append('photo', photo);
-
-      const result = await reportsApi.submit(fd);
+      const result = await reportsApi.submit(fields, photo);
       router.push(`/report/${result.id}?submitted=1`);
     } catch (err: unknown) {
       const apiErr = err as { status?: number };

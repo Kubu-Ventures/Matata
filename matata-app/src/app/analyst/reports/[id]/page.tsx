@@ -68,8 +68,7 @@ export default function AnalystReportDetailPage({
                 ...(prev.notes || []),
                 {
                   id: Date.now().toString(),
-                  content: noteText.trim(),
-                  created_by: 'You',
+                  body: noteText.trim(),
                   created_at: new Date().toISOString(),
                 },
               ],
@@ -278,10 +277,8 @@ export default function AnalystReportDetailPage({
               <div className="space-y-3 mb-4">
                 {(report.notes || []).map(note => (
                   <div key={note.id} className="bg-[#F7F8FA] rounded p-3">
-                    <p className="text-sm text-[#232E3D]">{note.content}</p>
-                    <p className="text-xs text-[#55606E] mt-1">
-                      {note.created_by} · {formatDate(note.created_at)}
-                    </p>
+                    <p className="text-sm text-[#232E3D]">{note.body}</p>
+                    <p className="text-xs text-[#55606E] mt-1">{formatDate(note.created_at)}</p>
                   </div>
                 ))}
               </div>

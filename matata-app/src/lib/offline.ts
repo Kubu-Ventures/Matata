@@ -8,13 +8,13 @@ export interface OfflineReport {
   fields: {
     crisis_type: string;
     infrastructure_type: string;
-    severity: string;
+    damage_severity: string;
     landmark_description?: string;
-    latitude?: number;
-    longitude?: number;
+    lat?: number;
+    lng?: number;
     electricity_status?: string;
     health_services_status?: string;
-    immediate_needs?: string;
+    most_pressing_needs?: string;
     debris_clearing_needed?: boolean;
     offline_queued_at: string;
   };
@@ -76,9 +76,7 @@ export async function syncQueue(token?: string): Promise<void> {
   for (const report of pending) {
     try {
       const fd = new FormData();
-      Object.entries(report.fields).forEach(([k, v]) => {
-        if (v !== undefined && v !== null) fd.append(k, String(v));
-      });
+      fd.append('metadata', JSON.stringify(report.fields));
 
       const res = await fetch(`${BASE_URL}/reports`, { method: 'POST', headers, body: fd });
       if (!res.ok) continue;

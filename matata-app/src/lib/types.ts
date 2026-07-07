@@ -50,9 +50,23 @@ export interface ReportListItem extends Report {
 
 export interface AnalystNote {
   id: string;
-  content: string;
-  created_by: string;
+  body: string;
   created_at: string;
+}
+
+export interface ReportSubmitMetadata {
+  crisis_type: CrisisType;
+  infrastructure_type: InfrastructureType;
+  damage_severity: DamageSeverity;
+  lat?: number;
+  lng?: number;
+  gps_accuracy_m?: number;
+  landmark_description?: string;
+  electricity_status?: ElectricityStatus;
+  health_services_status?: HealthServicesStatus;
+  most_pressing_needs?: string;
+  debris_clearing_needed?: boolean;
+  offline_queued_at?: string;
 }
 
 export interface AnalystReportDetail extends ReportListItem {
