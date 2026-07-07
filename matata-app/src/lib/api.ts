@@ -1,4 +1,4 @@
-import type { NearbyReport, Report, AnalystReportDetail, PaginatedReports } from './types';
+import type { NearbyReport, Report, AnalystReportDetail, PaginatedReports, ReportSubmitMetadata } from './types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://157.173.121.74:8000/api/v1';
 
@@ -39,8 +39,12 @@ export const authApi = {
 export const reportsApi = {
   nearby: (lat: number, lng: number, radius_m = 30) =>
     request<NearbyReport[]>(`/reports/nearby?lat=${lat}&lng=${lng}&radius_m=${radius_m}`),
-  submit: (formData: FormData) =>
-    request<{ id: string; status: string; building_id: string | null }>('/reports', { method: 'POST', body: formData }),
+  submit: (metadata: ReportSubmitMetadata, photo?: File | Blob | null) => {
+    const fd = new FormData();
+    fd.append('metadata', JSON.stringify(metadata));
+    if (photo) fd.append('photo', photo, photo instanceof File ? photo.name : 'photo.jpg');
+    return request<{ id: string; status: string; building_id: string | null }>('/reports', { method: 'POST', body: fd });
+  },
   get: (id: string) => request<Report>(`/reports/${id}`),
   uploadPhoto: (id: string, formData: FormData) =>
     request<{ id: string; photo_url: string; status: string }>(`/reports/${id}/photo`, { method: 'PATCH', body: formData }),
@@ -53,13 +57,13 @@ export const analystApi = {
   },
   getReport: (id: string) => request<AnalystReportDetail>(`/analyst/reports/${id}`),
   updateStatus: (id: string, status: string, reason?: string) =>
-    request<Report>(`/analyst/reports/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) }),
+    request<Report>(`/analyst/reports/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason_code: reason }) }),
   addNote: (id: string, content: string) =>
-    request<{ id: string; content: string; created_by: string; created_at: string }>(`/analyst/reports/${id}/notes`, { method: 'POST', body: JSON.stringify({ content }) }),
+    request<{ id: string; body: string; created_at: string }>(`/analyst/reports/${id}/notes`, { method: 'POST', body: JSON.stringify({ body: content }) }),
   overrideSeverity: (id: string, severity: string) =>
-    request<Report>(`/analyst/reports/${id}/severity`, { method: 'PATCH', body: JSON.stringify({ severity }) }),
+    request<Report>(`/analyst/reports/${id}/severity-override`, { method: 'POST', body: JSON.stringify({ analyst_severity_override: severity }) }),
   mergeReports: (primary_id: string, duplicate_id: string) =>
-    request<Report>(`/analyst/reports/merge`, { method: 'POST', body: JSON.stringify({ primary_id, duplicate_id }) }),
+    request<Report>(`/analyst/reports/merge`, { method: 'POST', body: JSON.stringify({ primary_id, duplicate_ids: [duplicate_id] }) }),
 };
 
 export const exportApi = {
@@ -75,5 +79,5 @@ export const exportApi = {
 
 export const adminApi = {
   provisionUser: (phone: string, role: string) =>
-    request<{ message: string; user_id: string }>('/admin/users', { method: 'POST', body: JSON.stringify({ phone, role }) }),
+    request<{ message: string; account: { id: string; role: string } }>('/auth/analyst/register', { method: 'POST', body: JSON.stringify({ phone, role }) }),
 };
