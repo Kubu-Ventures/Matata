@@ -2,7 +2,7 @@
   "name": "Matata — Crisis Damage Reporting",
   "short_name": "Matata",
   "description": "Community crisis damage reporting platform for field operations",
-  "start_url": "/report",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#006EB5",
