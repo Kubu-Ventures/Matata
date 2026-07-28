@@ -4,6 +4,7 @@ import './globals.css';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import SyncManager from '@/components/ui/SyncManager';
+import InstallPrompt from '@/components/pwa/InstallPrompt';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <SyncManager />
           <OfflineBanner />
+          <InstallPrompt />
           {children}
         </LanguageProvider>
       </body>
