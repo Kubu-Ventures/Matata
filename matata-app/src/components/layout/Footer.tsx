@@ -1,26 +1,26 @@
-'use client';
-
-import { useLanguage } from '@/contexts/LanguageContext';
+import Link from 'next/link'
 
 export function Footer() {
-  const { t } = useLanguage();
-
   return (
-    <footer className="border-t border-[#EDEFF0] mt-auto">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-6 h-6 bg-[#006EB5] rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">M</span>
-              </div>
-              <span className="font-semibold text-[#232E3D]">Matata</span>
-            </div>
-            <p className="text-xs text-[#55606E]">{t('footer.tagline')}</p>
-          </div>
-          <p className="text-xs text-[#55606E]">{t('footer.undp_tagline')}</p>
+    <footer id="about" className="border-t border-border bg-foreground text-background">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.5fr_1fr_1fr] lg:px-10">
+        <div>
+          <p className="text-xl font-bold tracking-tight">Matata</p>
+          <p className="mt-4 max-w-sm text-sm leading-6 text-background/70">Matata helps communities map disasters and share reliable information for coordinated response.</p>
+        </div>
+        <div className="flex flex-col gap-3 text-sm">
+          <p className="font-semibold">Crisis Response</p>
+          <Link href="#report" className="text-background/70 hover:text-background">Report a crisis</Link>
+          <Link href="#how-it-works" className="text-background/70 hover:text-background">How it works</Link>
+          <Link href="#resources" className="text-background/70 hover:text-background">Resources</Link>
+        </div>
+        <div className="flex flex-col gap-3 text-sm">
+          <p className="font-semibold">About Matata</p>
+          <Link href="#top" className="text-background/70 hover:text-background">Back to the start</Link>
+          <p className="text-background/50">This service does not replace emergency services.</p>
         </div>
       </div>
+      <div className="border-t border-background/20 px-6 py-5 text-xs text-background/60 lg:px-10">© {new Date().getFullYear()} Matata</div>
     </footer>
-  );
+  )
 }
