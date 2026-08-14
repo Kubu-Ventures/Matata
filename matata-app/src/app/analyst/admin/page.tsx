@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://157.173.121.74:8000/api/v1';
+import { adminApi } from '@/lib/api';
 
 export default function AdminAccountsPage() {
   const [phone, setPhone] = useState('');
@@ -20,19 +19,7 @@ export default function AdminAccountsPage() {
     setSuccess('');
     setError('');
     try {
-      const token = localStorage.getItem('matata_token');
-      const res = await fetch(`${BASE_URL}/auth/analyst/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ phone, role }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(err.error || 'Failed to provision account');
-      }
+      await adminApi.provisionUser(phone, role);
       setSuccess(`Account provisioned for ${phone} with role: ${role}`);
       setPhone('');
     } catch (err: unknown) {

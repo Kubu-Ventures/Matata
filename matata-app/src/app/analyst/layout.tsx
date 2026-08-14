@@ -17,15 +17,26 @@ export default function AnalystLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const [checked, setChecked] = useState(false);
 
+  const isLoginPage = pathname === '/analyst/login';
+
   useEffect(() => {
+    if (isLoginPage) {
+      setChecked(true);
+      return;
+    }
     const token = getToken();
     const role = getRole();
     if (!token || !['analyst', 'responder', 'admin'].includes(role || '')) {
       router.replace('/analyst/login');
-    } else {
-      setChecked(true);
+      return;
     }
-  }, [router]);
+    // Route-level admin guard — not just nav visibility.
+    if (pathname.startsWith('/analyst/admin') && role !== 'admin') {
+      router.replace('/analyst/dashboard');
+      return;
+    }
+    setChecked(true);
+  }, [router, pathname, isLoginPage]);
 
   if (!checked) {
     return (
@@ -33,6 +44,10 @@ export default function AnalystLayout({ children }: { children: React.ReactNode 
         <div className="animate-spin w-6 h-6 border-2 border-[#006EB5] border-t-transparent rounded-full" />
       </div>
     );
+  }
+
+  if (isLoginPage) {
+    return <>{children}</>;
   }
 
   const role = getRole();
