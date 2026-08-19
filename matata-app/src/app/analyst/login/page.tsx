@@ -1,137 +1,16 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { authApi } from '@/lib/api';
-import { saveAuth } from '@/lib/auth';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import type { Role } from '@/lib/types';
+import { FormEvent, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, ShieldCheck } from 'lucide-react'
+import { authApi } from '@/lib/api'
+import { saveAuth } from '@/lib/auth'
+import type { Role } from '@/lib/types'
+import { LoginShell, PrimaryButton } from '@/components/site-ui'
+import { useLanguage } from '@/components/language-provider'
 
 export default function AnalystLoginPage() {
-  const router = useRouter();
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function handleSendOtp(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await authApi.sendOtp(phone);
-      setStep('otp');
-    } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      setError(apiErr.message || 'Failed to send code. Please check your number.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleVerifyOtp(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const data = await authApi.verifyOtp(phone, otp);
-      if (!['analyst', 'responder', 'admin'].includes(data.role)) {
-        setError('This account does not have analyst access. Please contact your administrator.');
-        return;
-      }
-      saveAuth(data.token, data.role as Role, data.refresh_token);
-      router.push('/analyst/dashboard');
-    } catch (err: unknown) {
-      const apiErr = err as { status?: number };
-      if (apiErr.status === 429) {
-        setError('Too many attempts. Please wait 15 minutes.');
-      } else {
-        setError('Invalid or expired code.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#232E3D] flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-6">
-            <div className="w-9 h-9 bg-[#006EB5] rounded flex items-center justify-center">
-              <span className="text-white font-bold">M</span>
-            </div>
-            <span className="font-semibold text-xl text-white">Matata</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">Analyst Portal</h1>
-          <p className="text-sm text-white/60 mt-1">
-            {step === 'phone'
-              ? 'Enter your registered phone number'
-              : `Enter the code sent to ${phone}`}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-lg p-6">
-          {step === 'phone' ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
-              <Input
-                id="phone"
-                label="Phone number"
-                type="tel"
-                placeholder="+254700000000"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                helper="E.164 format with country code"
-                required
-              />
-              {error && <p className="text-sm text-[#EE402D]">{error}</p>}
-              <Button type="submit" loading={loading} className="w-full" size="lg">
-                Send Code
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <Input
-                id="otp"
-                label="Verification code"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                placeholder="000000"
-                value={otp}
-                onChange={e => setOtp(e.target.value)}
-                required
-              />
-              {error && <p className="text-sm text-[#EE402D]">{error}</p>}
-              <Button type="submit" loading={loading} className="w-full" size="lg">
-                Sign In
-              </Button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('phone');
-                  setOtp('');
-                  setError('');
-                }}
-                className="w-full text-sm text-[#55606E] hover:text-[#006EB5] transition-colors"
-              >
-                Change phone number
-              </button>
-            </form>
-          )}
-        </div>
-
-        <p className="text-center text-xs text-white/40 mt-6">
-          Access is restricted to provisioned accounts.{' '}
-          <Link href="/" className="text-white/60 hover:text-white transition-colors">
-            Return home
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
+  const router = useRouter(); const { translate } = useLanguage(); const [step, setStep] = useState<'phone'|'code'>('phone'); const [phone, setPhone] = useState(''); const [code, setCode] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
+  async function submit(e: FormEvent) { e.preventDefault(); setError(''); if (step === 'phone' && phone.replace(/\D/g, '').length < 7) return setError(translate('invalidPhone')); if (step === 'code' && !/^\d{6}$/.test(code)) return setError(translate('invalidCode')); setLoading(true); try { if (step === 'phone') { await authApi.sendOtp(phone); setStep('code') } else { const data = await authApi.verifyOtp(phone, code); if (!['analyst', 'responder', 'admin'].includes(data.role)) return setError(translate('analystAccess')); saveAuth(data.token, data.role as Role, data.refresh_token); router.push('/analyst/dashboard') } } catch (err: unknown) { setError((err as { status?: number }).status === 429 ? translate('tooManyAttempts') : translate('otpError')) } finally { setLoading(false) } }
+  return <LoginShell analyst><div className="mx-auto max-w-md"><div className="flex items-center gap-2 text-sm font-bold text-udnp-blue"><ShieldCheck size={18} aria-hidden="true" />{translate('privacy')}</div><h1 className="mt-6 text-3xl font-black tracking-tight text-navy">{translate('analystTitle')}</h1><p className="mt-3 leading-6 text-slate-copy">{step === 'phone' ? translate('analystIntro') : `${translate('codeIntro')} ${phone}`}</p><form onSubmit={submit} className="mt-8 space-y-5">{step === 'phone' ? <label className="block text-sm font-bold text-navy">{translate('phone')}<input required type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-2 min-h-12 w-full border border-line px-4 outline-none focus:border-udnp-blue focus:ring-4 focus:ring-udnp-blue/15" placeholder="+000 000 000 000" /></label> : <label className="block text-sm font-bold text-navy">{translate('code')}<input required inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} className="mt-2 min-h-12 w-full border border-line px-4 text-center text-2xl tracking-[0.4em] outline-none focus:border-udnp-blue focus:ring-4 focus:ring-udnp-blue/15" /></label>}{error && <p role="alert" className="border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-dark">{error}</p>}<PrimaryButton disabled={loading}>{loading ? '…' : step === 'phone' ? translate('continue') : translate('signInButton')}</PrimaryButton>{step === 'code' && <button type="button" onClick={() => { setStep('phone'); setCode(''); setError('') }} className="inline-flex items-center gap-1 text-sm font-bold text-udnp-blue"><ArrowLeft size={16} aria-hidden="true" />{translate('back')}</button>}</form></div></LoginShell>
 }
