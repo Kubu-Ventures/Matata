@@ -15,6 +15,24 @@ export function formatDate(iso: string) {
   });
 }
 
+/** Short relative time for live event feeds, e.g. "just now", "4m ago". */
+export function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffS = Math.max(0, Math.floor(diffMs / 1000));
+  if (diffS < 10) return 'just now';
+  if (diffS < 60) return `${diffS}s ago`;
+  const diffM = Math.floor(diffS / 60);
+  if (diffM < 60) return `${diffM}m ago`;
+  const diffH = Math.floor(diffM / 60);
+  if (diffH < 24) return `${diffH}h ago`;
+  return `${Math.floor(diffH / 24)}d ago`;
+}
+
+export function formatPercent(value: number | null | undefined, fractionDigits = 0): string {
+  if (value === null || value === undefined) return '—';
+  return `${(value * 100).toFixed(fractionDigits)}%`;
+}
+
 export const crisisLabels: Record<string, string> = {
   flood: 'Flood',
   earthquake: 'Earthquake',
@@ -57,4 +75,12 @@ export const priorityColors: Record<string, string> = {
   high: 'bg-orange-100 text-orange-800 border-orange-200',
   normal: 'bg-blue-100 text-blue-800 border-blue-200',
   low: 'bg-gray-100 text-gray-600 border-gray-200',
+};
+
+/** Human labels + colour for the live SSE feed on Overview / Dashboard. */
+export const streamEventMeta: Record<string, { label: string; color: string; icon: string }> = {
+  'report.created': { label: 'New report submitted', color: 'text-[#006EB5]', icon: '＋' },
+  'report.updated': { label: 'Report updated', color: 'text-[#55606E]', icon: '↻' },
+  'report.critical': { label: 'Critical damage reported', color: 'text-[#EE402D]', icon: '⚠' },
+  'report.ai_divergence': { label: 'AI disagrees with reporter', color: 'text-[#FBC412]', icon: '⚡' },
 };

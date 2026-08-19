@@ -69,9 +69,19 @@ export interface ReportSubmitMetadata {
   offline_queued_at?: string;
 }
 
+/** One entry in a building's damage history — every report ever filed against it. */
+export interface TimelineReportItem {
+  id: string;
+  damage_severity: DamageSeverity;
+  status: ReportStatus;
+  ai_severity_prediction: DamageSeverity | null;
+  created_at: string;
+}
+
 export interface AnalystReportDetail extends ReportListItem {
   footprint_geojson: string | null;
   notes: AnalystNote[];
+  building_timeline?: TimelineReportItem[];
 }
 
 export interface PaginatedReports {
@@ -89,4 +99,123 @@ export interface NearbyReport {
   damage_severity: DamageSeverity;
   created_at: string;
   similarity_score: number;
+}
+
+/** Filters accepted by GET /analyst/reports — mirrors analyst.py query params. */
+export interface ReportListParams {
+  page?: number;
+  limit?: number;
+  crisis_type?: string;
+  damage_severity?: string;
+  infrastructure_type?: string;
+  status?: string;
+  time_from?: string;
+  time_to?: string;
+  min_ai_confidence?: number;
+  review_priority?: string;
+  divergence_only?: boolean;
+  sort_by?: 'severity' | 'created_at';
+}
+
+// ---------------------------------------------------------------------------
+// Feature 2 — pending duplicate-merge review
+// ---------------------------------------------------------------------------
+
+export interface ConfirmMergeResponse {
+  id: string;
+  status: 'duplicate';
+  merged_into: string;
+}
+
+export interface RejectMergeResponse {
+  id: string;
+  status: 'pending';
+}
+
+export interface MergeResponse {
+  primary_id: string;
+  merged_count: number;
+}
+
+// ---------------------------------------------------------------------------
+// Feature 3 — AI accuracy / active-learning calibration
+// ---------------------------------------------------------------------------
+
+export interface FeedbackTypeBreakdown {
+  count: number;
+  agreement_rate: number | null;
+}
+
+export type AIFeedbackType = 'verify' | 'reject' | 'severity_override';
+
+export interface AIAccuracyResponse {
+  total_feedback: number;
+  agreement_rate: number | null;
+  high_confidence_agreement_rate: number | null;
+  avg_ai_confidence: number | null;
+  by_feedback_type: Record<AIFeedbackType, FeedbackTypeBreakdown>;
+  recommended_divergence_threshold: number | null;
+  high_confidence_feedback_count: number;
+  min_sample_for_calibration: number;
+  threshold_updated_at: string | null;
+  threshold_is_stale: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Public statistics — GET /stats/summary, GET /stats/heatmap
+// ---------------------------------------------------------------------------
+
+export interface StatsSummaryResponse {
+  total: number;
+  by_severity: Record<DamageSeverity, number>;
+  by_crisis_type: Record<CrisisType, number>;
+  pending_duplicate_count: number;
+  last_updated: string;
+}
+
+export interface HeatmapFeature {
+  type: 'Feature';
+  geometry: { type: 'Point'; coordinates: [number, number] };
+  properties: { weight: number };
+}
+
+export interface HeatmapFeatureCollection {
+  type: 'FeatureCollection';
+  features: HeatmapFeature[];
+}
+
+// ---------------------------------------------------------------------------
+// Export jobs — async export polling
+// ---------------------------------------------------------------------------
+
+export type ExportFormat = 'geojson' | 'csv' | 'shapefile';
+export type ExportJobStatus = 'processing' | 'complete' | 'failed';
+
+export interface ExportJobResponse {
+  job_id: string;
+  status: 'processing';
+}
+
+export interface ExportJobStatusResponse {
+  status: ExportJobStatus;
+  download_url: string | null;
+  expires_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Server-Sent Events — GET /analyst/stream
+// ---------------------------------------------------------------------------
+
+export type AnalystEventType = 'report.created' | 'report.updated' | 'report.critical' | 'report.ai_divergence';
+
+export interface AnalystStreamEvent {
+  event: AnalystEventType;
+  report_id?: string;
+  ai_severity_prediction?: DamageSeverity;
+  reporter_severity?: DamageSeverity;
+  ai_confidence?: number;
+  review_priority?: ReviewPriority;
+  lat?: number | null;
+  lng?: number | null;
+  [key: string]: unknown;
 }
