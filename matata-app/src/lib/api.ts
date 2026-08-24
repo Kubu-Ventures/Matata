@@ -3,6 +3,7 @@ import type {
   Report,
   AnalystReportDetail,
   PaginatedReports,
+  PaginatedOwnReports,
   ReportSubmitMetadata,
   ReportListParams,
   ConfirmMergeResponse,
@@ -34,7 +35,7 @@ function getLocale(): string {
 // Low-level fetch helpers
 // ---------------------------------------------------------------------------
 
-/** Build headers and issue one fetch — no retry/recovery logic here. */
+/** Build headers and issue one fetch, no retry/recovery logic here. */
 function rawFetch(path: string, options: RequestInit = {}): Promise<globalThis.Response> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -79,7 +80,7 @@ async function recoverSession(): Promise<boolean> {
       return true;
     }
   } catch {
-    // no-op — recovery failed, caller will surface the original 401
+    // no-op, recovery failed, caller will surface the original 401
   }
 
   clearAuth();
@@ -134,6 +135,9 @@ export const reportsApi = {
   get: (id: string) => request<Report>(`/reports/${id}`),
   uploadPhoto: (id: string, formData: FormData) =>
     request<{ id: string; photo_url: string; status: string }>(`/reports/${id}/photo`, { method: 'PATCH', body: formData }),
+  /** List the caller's own submitted reports, newest first. */
+  list: (page = 1, limit = 20) =>
+    request<PaginatedOwnReports>(`/reports?page=${page}&limit=${limit}`),
 };
 
 /** Serialise query parameters into a query string, dropping empty values. */
@@ -165,13 +169,13 @@ export const analystApi = {
   mergeReports: (primary_id: string, duplicate_id: string) =>
     request<MergeResponse>(`/analyst/reports/merge`, { method: 'POST', body: JSON.stringify({ primary_id, duplicate_ids: [duplicate_id] }) }),
 
-  // ── Feature 2 — pending duplicate-merge review ──────────────────────────
+  // Feature 2, pending duplicate-merge review
   confirmMerge: (id: string) =>
     request<ConfirmMergeResponse>(`/analyst/reports/${id}/confirm-merge`, { method: 'POST' }),
   rejectMerge: (id: string) =>
     request<RejectMergeResponse>(`/analyst/reports/${id}/reject-merge`, { method: 'POST' }),
 
-  // ── Feature 3 — AI accuracy / active-learning calibration ──────────────
+  // Feature 3, AI accuracy / active-learning calibration
   getAIAccuracy: () => request<AIAccuracyResponse>('/analyst/ai-accuracy'),
 };
 
@@ -192,8 +196,8 @@ export const exportApi = {
 
   /**
    * Trigger an export for the given format + filters and resolve to a Blob
-   * once ready — transparently follows the async job path (poll every 2s,
-   * up to ~2 minutes) when the dataset exceeds the server's sync threshold.
+   * once ready, transparently follows the async job path (poll every 2s,
+   * up to about 2 minutes) when the dataset exceeds the server's sync threshold.
    */
   async download(
     format: ExportFormat,
@@ -209,7 +213,7 @@ export const exportApi = {
 
     const contentType = res.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
-      // Async path — { job_id, status: "processing" }
+      // Async path, { job_id, status: "processing" }
       const { job_id } = (await res.json()) as ExportJobResponse;
       onStatus?.('processing');
       const startedAt = Date.now();
@@ -229,10 +233,10 @@ export const exportApi = {
           throw { status: 500, message: 'Export job failed. Please try again with a narrower filter.' };
         }
       }
-      throw { status: 408, message: 'Export is taking longer than expected — check back shortly.' };
+      throw { status: 408, message: 'Export is taking longer than expected, check back shortly.' };
     }
 
-    // Synchronous path — file bytes returned directly.
+    // Synchronous path, file bytes returned directly.
     onStatus?.('downloading');
     return res.blob();
   },
