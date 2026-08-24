@@ -8,7 +8,7 @@ import { saveAuth, getToken } from '@/lib/auth';
 import { addToQueue } from '@/lib/offline';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
-import LanguagePicker from '@/components/ui/LanguagePicker';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import type { CrisisType, InfrastructureType, DamageSeverity, ElectricityStatus, HealthServicesStatus } from '@/lib/types';
 
 type FormData = {
@@ -173,7 +173,7 @@ export default function ReportPage() {
             <span className="text-xs text-[#55606E]">
               {t(locale, 'report.step_of', { current: step + 1, total: STEPS.length })}
             </span>
-            <LanguagePicker />
+            <LanguageSwitcher />
           </div>
         </div>
       </div>

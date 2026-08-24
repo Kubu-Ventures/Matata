@@ -1,14 +1,14 @@
 export const LOCALES = {
-  en: { label: 'English', dir: 'ltr', flag: '🇬🇧' },
-  fr: { label: 'Français', dir: 'ltr', flag: '🇫🇷' },
-  ar: { label: 'العربية', dir: 'rtl', flag: '🇸🇦' },
-  es: { label: 'Español', dir: 'ltr', flag: '🇪🇸' },
-  sw: { label: 'Kiswahili', dir: 'ltr', flag: '🇰🇪' },
-  ha: { label: 'Hausa', dir: 'ltr', flag: '🇳🇬' },
-  am: { label: 'አማርኛ', dir: 'ltr', flag: '🇪🇹' },
-  zh: { label: '中文', dir: 'ltr', flag: '🇨🇳' },
-  ru: { label: 'Русский', dir: 'ltr', flag: '🇷🇺' },
-  so: { label: 'Soomaali', dir: 'ltr', flag: '🇸🇴' },
+  en: { label: 'English', short: 'EN', dir: 'ltr' },
+  fr: { label: 'Français', short: 'FR', dir: 'ltr' },
+  ar: { label: 'العربية', short: 'AR', dir: 'rtl' },
+  es: { label: 'Español', short: 'ES', dir: 'ltr' },
+  sw: { label: 'Kiswahili', short: 'SW', dir: 'ltr' },
+  ha: { label: 'Hausa', short: 'HA', dir: 'ltr' },
+  am: { label: 'አማርኛ', short: 'AM', dir: 'ltr' },
+  zh: { label: '中文', short: 'ZH', dir: 'ltr' },
+  ru: { label: 'Русский', short: 'RU', dir: 'ltr' },
+  so: { label: 'Soomaali', short: 'SO', dir: 'ltr' },
 } as const;
 
 export type Locale = keyof typeof LOCALES;

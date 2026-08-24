@@ -10,6 +10,7 @@ import { AnalystStreamProvider, useAnalystStreamContext } from '@/contexts/Analy
 const NAV_ITEMS = [
   { href: '/analyst/overview', label: 'Overview', icon: '🏠' },
   { href: '/analyst/dashboard', label: 'Reports', icon: '📋' },
+  { href: '/analyst/heatmap', label: 'Heatmap', icon: '🔥' },
   { href: '/analyst/merge-review', label: 'Merge Review', icon: '🔀', badgeKey: 'pending_duplicate_count' as const },
   { href: '/analyst/ai-accuracy', label: 'AI Accuracy', icon: '🤖' },
   { href: '/analyst/export', label: 'Export', icon: '⬇️' },

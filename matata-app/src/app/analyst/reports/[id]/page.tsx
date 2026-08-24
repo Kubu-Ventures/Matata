@@ -7,6 +7,7 @@ import type { AnalystReportDetail, DamageSeverity } from '@/lib/types';
 import { formatDate, severityColors, statusColors, priorityColors } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
 
 export default function AnalystReportDetailPage({
   params,
@@ -22,6 +23,14 @@ export default function AnalystReportDetailPage({
   const [overridingSeverity, setOverridingSeverity] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('inaccurate');
   const [error, setError] = useState('');
+
+  // Merge review
+  const [mergeActing, setMergeActing] = useState(false);
+
+  // Manual merge tool
+  const [duplicateOfId, setDuplicateOfId] = useState('');
+  const [merging, setMerging] = useState(false);
+  const [mergeSuccess, setMergeSuccess] = useState('');
 
   useEffect(() => {
     analystApi
@@ -82,6 +91,42 @@ export default function AnalystReportDetailPage({
     setAddingNote(false);
   }
 
+  async function confirmPendingMerge() {
+    setMergeActing(true);
+    try {
+      const res = await analystApi.confirmMerge(id);
+      setReport(prev => (prev ? { ...prev, status: res.status } : prev));
+    } catch {
+      setError('Failed to confirm merge.');
+    }
+    setMergeActing(false);
+  }
+
+  async function rejectPendingMerge() {
+    setMergeActing(true);
+    try {
+      const res = await analystApi.rejectMerge(id);
+      setReport(prev => (prev ? { ...prev, status: res.status } : prev));
+    } catch {
+      setError('Failed to reject merge.');
+    }
+    setMergeActing(false);
+  }
+
+  async function handleManualMerge() {
+    if (!duplicateOfId.trim()) return;
+    setMerging(true);
+    setMergeSuccess('');
+    try {
+      await analystApi.mergeReports(id, duplicateOfId.trim());
+      setMergeSuccess(`Report ${duplicateOfId.trim().slice(0, 8)} merged into this report.`);
+      setDuplicateOfId('');
+    } catch {
+      setError('Failed to merge — check the report ID and try again.');
+    }
+    setMerging(false);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -114,6 +159,26 @@ export default function AnalystReportDetailPage({
       {error && (
         <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
           <p className="text-sm text-[#EE402D]">{error}</p>
+        </div>
+      )}
+
+      {report.status === 'pending_merge_review' && (
+        <div className="bg-[#FBC412]/10 border border-[#FBC412]/40 rounded-lg p-4 mb-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-[#232E3D]">Awaiting merge review</p>
+            <p className="text-xs text-[#55606E] mt-0.5">
+              The duplicate-detection system flagged this report as a likely duplicate (composite
+              score ≥ 0.9). Confirm to merge it, or reject to keep it as an independent report.
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button size="sm" variant="secondary" loading={mergeActing} onClick={rejectPendingMerge}>
+              Reject
+            </Button>
+            <Button size="sm" variant="primary" loading={mergeActing} onClick={confirmPendingMerge}>
+              Confirm merge
+            </Button>
+          </div>
         </div>
       )}
 
@@ -268,6 +333,49 @@ export default function AnalystReportDetailPage({
             </div>
           )}
 
+          {/* Building damage timeline */}
+          {!!report.building_timeline?.length && (
+            <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
+              <h3 className="font-medium text-[#232E3D] mb-1 text-sm">Building Damage Timeline</h3>
+              <p className="text-xs text-[#55606E] mb-4">
+                Every report ever filed against this building, in chronological order — use this to
+                spot escalation across multiple events or repeated submissions.
+              </p>
+              <ol className="relative border-l border-[#EDEFF0] pl-4 space-y-4">
+                {report.building_timeline.map(item => (
+                  <li key={item.id} className="relative">
+                    <span
+                      className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ${
+                        item.id === report.id ? 'bg-[#006EB5]' : 'bg-[#B5D5F5]'
+                      }`}
+                    />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[item.damage_severity]}`}
+                      >
+                        {item.damage_severity}
+                      </span>
+                      <span
+                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${statusColors[item.status]}`}
+                      >
+                        {item.status.replace(/_/g, ' ')}
+                      </span>
+                      {item.ai_severity_prediction && (
+                        <span className="text-xs text-[#55606E]">
+                          AI: {item.ai_severity_prediction}
+                        </span>
+                      )}
+                      {item.id === report.id && (
+                        <span className="text-xs text-[#006EB5] font-medium">(this report)</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#55606E] mt-1">{formatDate(item.created_at)}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           {/* Notes */}
           <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
             <h3 className="font-medium text-[#232E3D] mb-4 text-sm">Analyst Notes</h3>
@@ -293,6 +401,31 @@ export default function AnalystReportDetailPage({
               />
               <Button size="sm" loading={addingNote} onClick={addNote} disabled={!noteText.trim()}>
                 Add
+              </Button>
+            </div>
+          </div>
+
+          {/* Manual merge tool */}
+          <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
+            <h3 className="font-medium text-[#232E3D] mb-1 text-sm">Manual Duplicate Merge</h3>
+            <p className="text-xs text-[#55606E] mb-3">
+              If you&apos;ve spotted a duplicate the automated scorer missed, mark it as a duplicate
+              of this report. This report becomes the surviving (primary) record.
+            </p>
+            {mergeSuccess && (
+              <div className="bg-green-50 border border-green-200 rounded p-2 mb-3">
+                <p className="text-xs text-green-800">✓ {mergeSuccess}</p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Duplicate report ID (UUID)"
+                value={duplicateOfId}
+                onChange={e => setDuplicateOfId(e.target.value)}
+                className="flex-1"
+              />
+              <Button size="sm" loading={merging} onClick={handleManualMerge} disabled={!duplicateOfId.trim()}>
+                Merge into this report
               </Button>
             </div>
           </div>
