@@ -14,7 +14,9 @@ import type {
   ExportFormat,
   ExportJobResponse,
   ExportJobStatusResponse,
+  Role,
 } from './types';
+import { clearAuth, getRefreshToken, getRole, saveAuth } from './auth';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://157.173.121.74:8000/api/v1';
 
@@ -28,7 +30,12 @@ function getLocale(): string {
   return localStorage.getItem('matata_lang') || 'en';
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+// ---------------------------------------------------------------------------
+// Low-level fetch helpers
+// ---------------------------------------------------------------------------
+
+/** Build headers and issue one fetch — no retry/recovery logic here. */
+function rawFetch(path: string, options: RequestInit = {}): Promise<globalThis.Response> {
   const token = getToken();
   const headers: Record<string, string> = {
     ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
@@ -36,7 +43,70 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     'Accept-Language': getLocale(),
     ...(options.headers as Record<string, string> || {}),
   };
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  return fetch(`${BASE_URL}${path}`, { ...options, headers });
+}
+
+/**
+ * Recover from an expired/invalid session: try a refresh-token rotation
+ * first (real logins), then fall back to minting a fresh anonymous session
+ * (reporters never had a refresh token to begin with). Returns true if a new
+ * token was obtained and the caller should retry its request once.
+ */
+async function recoverSession(): Promise<boolean> {
+  const refresh = getRefreshToken();
+
+  if (refresh) {
+    try {
+      const res = await rawFetch('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refresh_token: refresh }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { token: string; refresh_token: string };
+        saveAuth(data.token, (getRole() ?? 'reporter') as Role, data.refresh_token);
+        return true;
+      }
+    } catch {
+      // fall through to anonymous recovery
+    }
+  }
+
+  try {
+    const res = await rawFetch('/auth/anonymous', { method: 'POST' });
+    if (res.ok) {
+      const data = (await res.json()) as { session_token: string };
+      saveAuth(data.session_token, 'anonymous_reporter');
+      return true;
+    }
+  } catch {
+    // no-op — recovery failed, caller will surface the original 401
+  }
+
+  clearAuth();
+  return false;
+}
+
+/**
+ * Fetch with automatic session recovery on 401. Used by every API call,
+ * including raw-blob downloads that don't go through request()/JSON parsing.
+ * Auth endpoints themselves are excluded to avoid recursion.
+ */
+async function fetchWithAuthRetry(path: string, options: RequestInit = {}): Promise<globalThis.Response> {
+  let res = await rawFetch(path, options);
+
+  const isAuthEndpoint = path.startsWith('/auth/');
+  if (res.status === 401 && !isAuthEndpoint) {
+    const recovered = await recoverSession();
+    if (recovered) {
+      res = await rawFetch(path, options);
+    }
+  }
+
+  return res;
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetchWithAuthRetry(path, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw { status: res.status, message: err.error || res.statusText };
@@ -130,11 +200,8 @@ export const exportApi = {
     params: Record<string, string> = {},
     onStatus?: (status: 'requesting' | 'processing' | 'downloading') => void,
   ): Promise<Blob> {
-    const token = getToken();
     onStatus?.('requesting');
-    const res = await fetch(`${BASE_URL}/export/${format}${toQueryString(params)}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const res = await fetchWithAuthRetry(`/export/${format}${toQueryString(params)}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
       throw { status: res.status, message: err.error || res.statusText };
