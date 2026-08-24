@@ -9,6 +9,7 @@ import { addToQueue } from '@/lib/offline';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { AccountMenu } from '@/components/layout/AccountMenu';
 import type { CrisisType, InfrastructureType, DamageSeverity, ElectricityStatus, HealthServicesStatus } from '@/lib/types';
 
 type FormData = {
@@ -173,6 +174,7 @@ export default function ReportPage() {
             <span className="text-xs text-[#55606E]">
               {t(locale, 'report.step_of', { current: step + 1, total: STEPS.length })}
             </span>
+            <AccountMenu />
             <LanguageSwitcher />
           </div>
         </div>

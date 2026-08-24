@@ -91,6 +91,17 @@ export interface PaginatedReports {
   items: ReportListItem[];
 }
 
+// ---------------------------------------------------------------------------
+// Reporter's own report history — GET /reports (list own)
+// ---------------------------------------------------------------------------
+
+export interface PaginatedOwnReports {
+  total: number;
+  page: number;
+  limit: number;
+  items: Report[];
+}
+
 export interface NearbyReport {
   id: string;
   lat: number;
