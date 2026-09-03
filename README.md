@@ -2,7 +2,7 @@
 
 Matata is a mobile-first Progressive Web App for crowdsourced crisis and disaster damage reporting. Citizens report building/infrastructure damage from the field — even offline — and analysts review, deduplicate, and export the incoming reports from a role-gated portal.
 
-This repository contains the **frontend only**. It is a [Next.js](https://nextjs.org) 16 App Router application that talks to an external REST + SSE backend; there is no backend code here.
+This repository contains the **frontend only**, in `matata-app/`. It is a [Next.js](https://nextjs.org) 16 App Router application that talks to an external REST + SSE backend; there is no backend code here, and there is no root-level `package.json` — always `cd matata-app` before running `npm` commands.
 
 ## Contents
 
@@ -41,6 +41,7 @@ There is **no test framework configured** — do not assume Jest/Vitest/Playwrig
 ## Getting started
 
 ```bash
+cd matata-app
 npm install
 npm run dev
 ```
@@ -51,9 +52,9 @@ Open [http://localhost:3000](http://localhost:3000). The dev server uses Turbopa
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | `http://157.173.121.74:8000/api/v1` | Base URL of the backend REST API. All requests in `src/lib/api.ts` and `src/lib/offline.ts` are built by concatenating this with a path. |
+| `NEXT_PUBLIC_API_URL` | `http://157.173.121.74:8000/api/v1` | Base URL of the backend REST API. All requests in `matata-app/src/lib/api.ts` and `matata-app/src/lib/offline.ts` are built by concatenating this with a path. |
 
-Set it in `.env.local` (gitignored) to point at a local or staging backend:
+Set it in `matata-app/.env.local` (gitignored) to point at a local or staging backend:
 
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
@@ -61,7 +62,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 
 ## Scripts
 
-Run these from `matata-app/` (this directory):
+Run these from `matata-app/`:
 
 ```bash
 npm run dev      # start dev server (Turbopack, PWA disabled)
@@ -73,40 +74,41 @@ npm run lint     # ESLint (flat config)
 ## Project structure
 
 ```
-src/
-  app/                    # Next.js App Router routes
-    page.tsx              # public landing page
-    login/                # reporter OTP login
-    report/                # multi-step damage report form (page.tsx)
-      [id]/                # report detail / status
-      queued/               # confirmation for offline-queued reports
-    my-reports/            # reporter's own submission history
-    analyst/                # role-gated analyst portal
-      layout.tsx           # client-side auth/role gate + sidebar shell
-      overview/  dashboard/  heatmap/  merge-review/
-      ai-accuracy/  export/  admin/    reports/[id]/
-      login/               # analyst phone/OTP login
-    ~offline/              # PWA offline fallback page
-  components/
-    layout/                # Header, Footer, AccountMenu, LanguageSwitcher
-    pwa/                   # InstallPrompt
-    ui/                    # Button, Input, Select, Badge, OfflineBanner, SyncManager
-    HeatmapMap.tsx / HeatmapLayer.tsx  # Leaflet heatmap for analysts
-  contexts/
-    LanguageContext.tsx    # active locale + t()
-    AnalystStreamContext.tsx  # SSE connection state for the analyst portal
-  hooks/
-    useAnalystStream.ts    # underlying SSE hook
-  lib/
-    api.ts                 # single HTTP client — all backend calls go through here
-    auth.ts                # localStorage-backed token/role helpers
-    offline.ts              # offline report queue + sync
-    types.ts                # shared domain types (Report, Role, enums, API payloads)
-    utils.ts                # cn() + shared label/color lookup maps
-    i18n/                   # locale table, translator, per-locale dictionaries
-public/
-  manifest.json            # PWA install metadata/icons
-  sw.js, workbox-*.js       # generated at build time — do not hand-edit
+matata-app/
+  src/
+    app/                    # Next.js App Router routes
+      page.tsx              # public landing page
+      login/                # reporter OTP login
+      report/                # multi-step damage report form (page.tsx)
+        [id]/                # report detail / status
+        queued/               # confirmation for offline-queued reports
+      my-reports/            # reporter's own submission history
+      analyst/                # role-gated analyst portal
+        layout.tsx           # client-side auth/role gate + sidebar shell
+        overview/  dashboard/  heatmap/  merge-review/
+        ai-accuracy/  export/  admin/    reports/[id]/
+        login/               # analyst phone/OTP login
+      ~offline/              # PWA offline fallback page
+    components/
+      layout/                # Header, Footer, AccountMenu, LanguageSwitcher
+      pwa/                   # InstallPrompt
+      ui/                    # Button, Input, Select, Badge, OfflineBanner, SyncManager
+      HeatmapMap.tsx / HeatmapLayer.tsx  # Leaflet heatmap for analysts
+    contexts/
+      LanguageContext.tsx    # active locale + t()
+      AnalystStreamContext.tsx  # SSE connection state for the analyst portal
+    hooks/
+      useAnalystStream.ts    # underlying SSE hook
+    lib/
+      api.ts                 # single HTTP client — all backend calls go through here
+      auth.ts                # localStorage-backed token/role helpers
+      offline.ts              # offline report queue + sync
+      types.ts                # shared domain types (Report, Role, enums, API payloads)
+      utils.ts                # cn() + shared label/color lookup maps
+      i18n/                   # locale table, translator, per-locale dictionaries
+  public/
+    manifest.json            # PWA install metadata/icons
+    sw.js, workbox-*.js       # generated at build time — do not hand-edit
 ```
 
 ## Architecture
@@ -115,6 +117,8 @@ public/
 
 - **Public reporter flow** (`src/app/page.tsx`, `src/app/report/*`, `src/app/login/*`): anonymous or OTP-authenticated citizens submit a multi-step damage report (location → crisis type → details → photo → review) via `src/app/report/page.tsx`.
 - **Analyst portal** (`src/app/analyst/*`): a role-gated dashboard for reviewing, merging, and exporting reports. `src/app/analyst/layout.tsx` checks `getRole()` client-side against `analyst`/`responder`/`admin` and redirects to `/analyst/login` otherwise; the `admin`-only "Accounts" nav item is filtered the same way. **This is UX-only, not a security boundary** — there is no server-side route protection, so any real authorization must be enforced by the backend.
+
+All paths below are relative to `matata-app/`.
 
 ### API layer
 
@@ -179,7 +183,7 @@ Tailwind v4 via `@tailwindcss/postcss`, with **no theme tokens configured** — 
 
 ## Data model
 
-Core domain types live in `src/lib/types.ts` and mirror the backend's schema — treat it as the source of truth for API shapes rather than re-deriving them ad hoc:
+Core domain types live in `matata-app/src/lib/types.ts` and mirror the backend's schema — treat it as the source of truth for API shapes rather than re-deriving them ad hoc:
 
 - **`Report`** — a single damage report: crisis type, infrastructure type, damage severity, status, photo status, GPS location, AI severity prediction/confidence/quality score, analyst overrides, review priority.
 - **Enums**: `Role`, `CrisisType` (`flood | earthquake | conflict | wildfire | other`), `InfrastructureType`, `DamageSeverity` (`minimal | partial | destroyed`), `ReportStatus` (`pending | verified | rejected | duplicate | pending_merge_review`), `PhotoStatus`, `ReviewPriority`.
@@ -188,4 +192,4 @@ Core domain types live in `src/lib/types.ts` and mirror the backend's schema —
 
 ## Deployment
 
-This is a standard Next.js app (`npm run build && npm run start`) and can be deployed anywhere Next.js is supported (e.g. [Vercel](https://vercel.com/new)). Make sure `NEXT_PUBLIC_API_URL` is set for the target environment at build time, since it's a `NEXT_PUBLIC_*` variable baked into the client bundle.
+This is a standard Next.js app — build and run it from `matata-app/` (`npm run build && npm run start`) — and it can be deployed anywhere Next.js is supported (e.g. [Vercel](https://vercel.com/new), with the project root set to `matata-app/`). Make sure `NEXT_PUBLIC_API_URL` is set for the target environment at build time, since it's a `NEXT_PUBLIC_*` variable baked into the client bundle.
