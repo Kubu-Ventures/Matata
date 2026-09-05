@@ -193,3 +193,11 @@ Core domain types live in `matata-app/src/lib/types.ts` and mirror the backend's
 ## Deployment
 
 This is a standard Next.js app — build and run it from `matata-app/` (`npm run build && npm run start`) — and it can be deployed anywhere Next.js is supported (e.g. [Vercel](https://vercel.com/new), with the project root set to `matata-app/`). Make sure `NEXT_PUBLIC_API_URL` is set for the target environment at build time, since it's a `NEXT_PUBLIC_*` variable baked into the client bundle.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, branching, and PR conventions. This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
