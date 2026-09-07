@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { usePrivy } from '@privy-io/react-auth';
 import { getToken, getRole, clearAuth } from '@/lib/auth';
 import { authApi, statsApi } from '@/lib/api';
+import { clearPrivySession } from '@/components/PrivyClientProvider';
 import { AnalystStreamProvider, useAnalystStreamContext } from '@/contexts/AnalystStreamContext';
 
 const NAV_ITEMS = [
@@ -113,7 +113,6 @@ function Sidebar({ role, pathname, onLogout }: { role: string | null; pathname: 
 
 export default function AnalystLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { logout: privyLogout } = usePrivy();
   const pathname = usePathname();
   const [checked, setChecked] = useState(false);
 
@@ -155,7 +154,7 @@ export default function AnalystLayout({ children }: { children: React.ReactNode 
     try {
       await authApi.logout();
     } catch {}
-    await privyLogout().catch(() => {});
+    clearPrivySession();
     clearAuth();
     router.push('/');
   }

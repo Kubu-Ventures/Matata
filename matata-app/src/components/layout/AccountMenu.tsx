@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePrivy } from '@privy-io/react-auth';
 import { authApi } from '@/lib/api';
+import { clearPrivySession } from '@/components/PrivyClientProvider';
 import { getRole, clearAuth } from '@/lib/auth';
 import type { Role } from '@/lib/types';
 
@@ -17,7 +17,6 @@ import type { Role } from '@/lib/types';
  * remains fully optional.
  */
 export function AccountMenu() {
-  const { logout: privyLogout } = usePrivy();
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
 
@@ -38,9 +37,9 @@ export function AccountMenu() {
     } catch {
       // Token may already be expired/revoked — clear local state regardless.
     }
-    // End the Privy session too, so the next visit to /login starts clean
-    // instead of silently re-authenticating.
-    await privyLogout().catch(() => {});
+    // End the Privy browser session too, so the next visit to /login starts
+    // clean instead of resuming a stale session.
+    clearPrivySession();
     clearAuth();
     window.location.href = '/';
   }
