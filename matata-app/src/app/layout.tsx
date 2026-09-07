@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { PrivyClientProvider } from '@/components/PrivyClientProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import SyncManager from '@/components/ui/SyncManager';
@@ -38,12 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <body>
-        <LanguageProvider>
-          <SyncManager />
-          <OfflineBanner />
-          <InstallPrompt />
-          {children}
-        </LanguageProvider>
+        <PrivyClientProvider>
+          <LanguageProvider>
+            <SyncManager />
+            <OfflineBanner />
+            <InstallPrompt />
+            {children}
+          </LanguageProvider>
+        </PrivyClientProvider>
       </body>
     </html>
   );
