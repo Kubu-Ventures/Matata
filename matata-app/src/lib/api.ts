@@ -117,8 +117,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const authApi = {
   anonymous: () => request<{ session_token: string }>('/auth/anonymous', { method: 'POST' }),
-  sendOtp: (phone: string) => request<{ message: string }>('/auth/otp/send', { method: 'POST', body: JSON.stringify({ phone }) }),
-  verifyOtp: (phone: string, otp: string) => request<{ token: string; refresh_token: string; role: string }>('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ phone, otp }) }),
+  /**
+   * Exchange the tokens from a completed Privy email OTP login for our own
+   * session. `identity_token` carries the verified email (Privy access tokens
+   * don't) and is what lets a provisioned analyst resolve to their role — send
+   * it whenever Privy gives us one.
+   */
+  verifyPrivy: (privy_token: string, identity_token?: string | null) =>
+    request<{ token: string; refresh_token: string; role: string }>('/auth/privy/verify', {
+      method: 'POST',
+      body: JSON.stringify({ privy_token, identity_token: identity_token ?? undefined }),
+    }),
   refresh: (refresh_token: string) => request<{ token: string; refresh_token: string }>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refresh_token }) }),
   logout: () => request<{ message: string }>('/auth/logout', { method: 'DELETE' }),
 };
@@ -243,6 +252,6 @@ export const exportApi = {
 };
 
 export const adminApi = {
-  provisionUser: (phone: string, role: string) =>
-    request<{ message: string; account: { id: string; role: string } }>('/auth/analyst/register', { method: 'POST', body: JSON.stringify({ phone, role }) }),
+  provisionUser: (email: string, role: string) =>
+    request<{ message: string; account: { id: string; role: string } }>('/auth/analyst/register', { method: 'POST', body: JSON.stringify({ email, role }) }),
 };
