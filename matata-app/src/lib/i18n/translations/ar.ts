@@ -11,7 +11,7 @@ export const ar: Record<TranslationKey, string> = {
   'landing.hero_title': 'أبلغ عن أضرار الأزمات في مجتمعك',
   'landing.hero_desc': 'ساعد فرق برنامج الأمم المتحدة الميدانية على الاستجابة بشكل أسرع. قدّم تقرير أضرار مع موقعك وصورة — يستغرق أقل من دقيقتين.',
   'landing.cta_primary': 'أبلغ عن الأضرار الآن',
-  'landing.cta_secondary': 'تسجيل الدخول برقم الهاتف',
+  'landing.cta_secondary': 'تسجيل الدخول بالبريد الإلكتروني',
   'landing.crisis_section_title': 'نتتبع جميع أنواع الأزمات',
   'landing.how_title': 'كيف يعمل',
   'landing.step1_title': 'حدد موقع الضرر',

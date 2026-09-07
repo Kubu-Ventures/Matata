@@ -11,7 +11,7 @@ export const ha: Record<TranslationKey, string> = {
   'landing.hero_title': 'Rarraba Lalacewar Rikici a Cikin Al\'ummarku',
   'landing.hero_desc': 'Taimaka wa ƙungiyoyin filin Matata su amsa cikin sauri. Aika rahoto na lalacewa tare da wurinku da hoto — yana ɗaukar ƙasa da mintuna 2.',
   'landing.cta_primary': 'Rarraba Lalacewa Yanzu',
-  'landing.cta_secondary': 'Shiga da Waya',
+  'landing.cta_secondary': 'Shiga da Imel',
   'landing.crisis_section_title': 'Muna bin diddigin duk nau\'ikan rikici',
   'landing.how_title': 'Yadda yake aiki',
   'landing.step1_title': 'Nemo lalacewa',

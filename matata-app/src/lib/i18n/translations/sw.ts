@@ -11,7 +11,7 @@ export const sw: Record<TranslationKey, string> = {
   'landing.hero_title': 'Ripoti Uharibifu wa Msiba Katika Jamii Yako',
   'landing.hero_desc': 'Saidia timu za uwanja za Matata kujibu haraka. Tuma ripoti ya uharibifu na eneo lako na picha — inachukua chini ya dakika 2.',
   'landing.cta_primary': 'Ripoti Uharibifu Sasa',
-  'landing.cta_secondary': 'Ingia kwa Simu',
+  'landing.cta_secondary': 'Ingia kwa Barua Pepe',
   'landing.crisis_section_title': 'Tunafuatilia aina zote za msiba',
   'landing.how_title': 'Inavyofanya kazi',
   'landing.step1_title': 'Tafuta uharibifu',

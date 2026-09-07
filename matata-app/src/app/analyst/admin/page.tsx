@@ -7,7 +7,7 @@ import { Select } from '@/components/ui/Select';
 import { adminApi } from '@/lib/api';
 
 export default function AdminAccountsPage() {
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [role, setRole] = useState('analyst');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -19,9 +19,9 @@ export default function AdminAccountsPage() {
     setSuccess('');
     setError('');
     try {
-      await adminApi.provisionUser(phone, role);
-      setSuccess(`Account provisioned for ${phone} with role: ${role}`);
-      setPhone('');
+      await adminApi.provisionUser(email, role);
+      setSuccess(`Account provisioned for ${email} with role: ${role}`);
+      setEmail('');
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
       setError(apiErr.message || 'Failed to provision account. Please try again.');
@@ -39,12 +39,12 @@ export default function AdminAccountsPage() {
         <h2 className="font-medium text-[#232E3D] mb-4">Provision New Account</h2>
         <form onSubmit={handleProvision} className="space-y-4">
           <Input
-            label="Phone number"
-            type="tel"
-            placeholder="+254700000000"
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
-            helper="E.164 format with country code"
+            label="Email address"
+            type="email"
+            placeholder="name@organisation.org"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            helper="The address this person will sign in with"
             required
           />
           <Select
@@ -78,7 +78,7 @@ export default function AdminAccountsPage() {
       <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
         <p className="text-xs text-yellow-800">
           <strong>Security notice:</strong> The provisioned user will be able to log in immediately
-          via the OTP flow using the registered phone number. Ensure you provision only trusted
+          via the email OTP flow using this address. Ensure you provision only trusted
           individuals.
         </p>
       </div>

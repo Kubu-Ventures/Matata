@@ -11,7 +11,7 @@ export const es: Record<TranslationKey, string> = {
   'landing.hero_title': 'Reporta Daños por Crisis en Tu Comunidad',
   'landing.hero_desc': 'Ayuda a los equipos de campo del PNUD a responder más rápido. Envía un informe de daños con tu ubicación y una foto — tarda menos de 2 minutos.',
   'landing.cta_primary': 'Reportar Daños Ahora',
-  'landing.cta_secondary': 'Iniciar Sesión con Teléfono',
+  'landing.cta_secondary': 'Iniciar Sesión con Correo',
   'landing.crisis_section_title': 'Rastreamos todos los tipos de crisis',
   'landing.how_title': 'Cómo funciona',
   'landing.step1_title': 'Localiza el daño',

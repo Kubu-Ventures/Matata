@@ -11,7 +11,7 @@ export const zh: Record<TranslationKey, string> = {
   'landing.hero_title': '上报您社区的危机损失',
   'landing.hero_desc': '帮助联合国开发计划署实地团队更快响应。提交包含位置和照片的损失报告 — 仅需不到2分钟。',
   'landing.cta_primary': '立即上报损失',
-  'landing.cta_secondary': '手机号登录',
+  'landing.cta_secondary': '使用电子邮件登录',
   'landing.crisis_section_title': '我们追踪所有危机类型',
   'landing.how_title': '使用方法',
   'landing.step1_title': '定位损失',

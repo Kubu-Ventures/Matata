@@ -11,7 +11,7 @@ export const ru: Record<TranslationKey, string> = {
   'landing.hero_title': 'Сообщите об ущербе от кризиса в вашем сообществе',
   'landing.hero_desc': 'Помогите полевым командам ПРООН реагировать быстрее. Отправьте отчёт об ущербе с вашим местоположением и фото — это займёт менее 2 минут.',
   'landing.cta_primary': 'Сообщить об ущербе сейчас',
-  'landing.cta_secondary': 'Войти по телефону',
+  'landing.cta_secondary': 'Войти по эл. почте',
   'landing.crisis_section_title': 'Мы отслеживаем все типы кризисов',
   'landing.how_title': 'Как это работает',
   'landing.step1_title': 'Определите ущерб',

@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePrivy } from '@privy-io/react-auth';
 import { authApi } from '@/lib/api';
 import { getRole, clearAuth } from '@/lib/auth';
 import type { Role } from '@/lib/types';
 
 /**
  * Small header widget for the public-facing (non-analyst) app that reflects
- * whether the current visitor is anonymous or a phone-verified reporter.
+ * whether the current visitor is anonymous or an email-verified reporter.
  *
  * Until now there was no visible difference between the two states and no
  * way for a signed-in reporter to see their history or log out — this
@@ -16,6 +17,7 @@ import type { Role } from '@/lib/types';
  * remains fully optional.
  */
 export function AccountMenu() {
+  const { logout: privyLogout } = usePrivy();
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
 
@@ -36,6 +38,9 @@ export function AccountMenu() {
     } catch {
       // Token may already be expired/revoked — clear local state regardless.
     }
+    // End the Privy session too, so the next visit to /login starts clean
+    // instead of silently re-authenticating.
+    await privyLogout().catch(() => {});
     clearAuth();
     window.location.href = '/';
   }

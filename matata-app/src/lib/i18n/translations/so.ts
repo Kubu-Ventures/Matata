@@ -11,7 +11,7 @@ export const so: Record<TranslationKey, string> = {
   'landing.hero_title': 'Ka Warbixin Waxyeellada Xaaladda ee Bulshada',
   'landing.hero_desc': 'Caawi kooxaha Matata ee goobta si ay uga jawaabean si dhakhso ah. Dir warbixin dhaawac ah oo ku jira goobta iyo sawir — waxay qaadataa ka yar 2 daqiiqo.',
   'landing.cta_primary': 'Hada Ka Warbixin Waxyeellada',
-  'landing.cta_secondary': 'Ku Gal Telefoonka',
+  'landing.cta_secondary': 'Ku Gal Iimaylka',
   'landing.crisis_section_title': 'Waxaan dabagalnaa dhammaan noocyada xaaladda',
   'landing.how_title': 'Sidee u shaqeeyaa',
   'landing.step1_title': 'Hel waxyeellada',

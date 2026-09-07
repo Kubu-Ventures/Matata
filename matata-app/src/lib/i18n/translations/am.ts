@@ -11,7 +11,7 @@ export const am: Record<TranslationKey, string> = {
   'landing.hero_title': 'በማህበረሰብዎ የቀውስ ጉዳትን ሪፖርት ያድርጉ',
   'landing.hero_desc': 'የMatata የሜዳ ቡድኖች ፈጠነ ምላሽ እንዲሰጡ ይርዷቸው። ስፍራዎን እና ፎቶ ጨምሮ የጉዳት ሪፖርት ያስገቡ — ከ2 ደቂቃ ያነሰ ጊዜ ይወስዳል።',
   'landing.cta_primary': 'አሁን ጉዳትን ሪፖርት ያድርጉ',
-  'landing.cta_secondary': 'በስልክ ግቡ',
+  'landing.cta_secondary': 'በኢሜይል ግቡ',
   'landing.crisis_section_title': 'ሁሉንም የቀውስ ዓይነቶች እንከታተላለን',
   'landing.how_title': 'እንዴት እንደሚሰራ',
   'landing.step1_title': 'ጉዳቱን ይለዩ',

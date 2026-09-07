@@ -3,56 +3,72 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { authApi } from '@/lib/api';
-import { saveAuth } from '@/lib/auth';
+import { useLoginWithEmail, usePrivy } from '@privy-io/react-auth';
+import { exchangePrivySession, privyErrorMessage } from '@/lib/privyLogin';
+import { clearAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import type { Role } from '@/lib/types';
 
 export default function AnalystLoginPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
+  const { logout: privyLogout } = usePrivy();
+  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [finishing, setFinishing] = useState(false);
 
-  async function handleSendOtp(e: React.FormEvent) {
+  const { sendCode, loginWithCode, state } = useLoginWithEmail({
+    onComplete: async () => {
+      setFinishing(true);
+      try {
+        const { isElevated } = await exchangePrivySession();
+        if (!isElevated) {
+          // Backend issued a plain reporter session — this email isn't a
+          // provisioned analyst. Drop it and keep them on this page.
+          clearAuth();
+          await privyLogout().catch(() => {});
+          setError(
+            'This account does not have analyst access. Please contact your administrator.'
+          );
+          setFinishing(false);
+          return;
+        }
+        router.push('/analyst/dashboard');
+      } catch (err: unknown) {
+        const apiErr = err as { status?: number; message?: string };
+        setError(
+          apiErr.status === 429
+            ? 'Too many attempts. Please wait a minute and try again.'
+            : apiErr.message || 'Could not complete sign in. Please try again.'
+        );
+        setFinishing(false);
+      }
+    },
+    onError: (err) => setError(privyErrorMessage(err)),
+  });
+
+  const sending = state.status === 'sending-code';
+  const verifying = state.status === 'submitting-code' || finishing;
+
+  async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    setLoading(true);
     try {
-      await authApi.sendOtp(phone);
-      setStep('otp');
+      await sendCode({ email });
+      setStep('code');
     } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      setError(apiErr.message || 'Failed to send code. Please check your number.');
-    } finally {
-      setLoading(false);
+      setError(privyErrorMessage(err));
     }
   }
 
-  async function handleVerifyOtp(e: React.FormEvent) {
+  async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    setLoading(true);
     try {
-      const data = await authApi.verifyOtp(phone, otp);
-      if (!['analyst', 'responder', 'admin'].includes(data.role)) {
-        setError('This account does not have analyst access. Please contact your administrator.');
-        return;
-      }
-      saveAuth(data.token, data.role as Role, data.refresh_token);
-      router.push('/analyst/dashboard');
+      await loginWithCode({ code });
     } catch (err: unknown) {
-      const apiErr = err as { status?: number };
-      if (apiErr.status === 429) {
-        setError('Too many attempts. Please wait 15 minutes.');
-      } else {
-        setError('Invalid or expired code.');
-      }
-    } finally {
-      setLoading(false);
+      setError(privyErrorMessage(err));
     }
   }
 
@@ -68,58 +84,60 @@ export default function AnalystLoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-white">Analyst Portal</h1>
           <p className="text-sm text-white/60 mt-1">
-            {step === 'phone'
-              ? 'Enter your registered phone number'
-              : `Enter the code sent to ${phone}`}
+            {step === 'email'
+              ? 'Enter your registered email address'
+              : `Enter the code sent to ${email}`}
           </p>
         </div>
 
         <div className="bg-white rounded-lg p-6">
-          {step === 'phone' ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
+          {step === 'email' ? (
+            <form onSubmit={handleSendCode} className="space-y-4">
               <Input
-                id="phone"
-                label="Phone number"
-                type="tel"
-                placeholder="+254700000000"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                helper="E.164 format with country code"
+                id="email"
+                label="Email address"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.org"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                helper="The address your administrator provisioned"
                 required
               />
               {error && <p className="text-sm text-[#EE402D]">{error}</p>}
-              <Button type="submit" loading={loading} className="w-full" size="lg">
+              <Button type="submit" loading={sending} className="w-full" size="lg">
                 Send Code
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <form onSubmit={handleVerifyCode} className="space-y-4">
               <Input
-                id="otp"
+                id="code"
                 label="Verification code"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]{6}"
                 maxLength={6}
+                autoComplete="one-time-code"
                 placeholder="000000"
-                value={otp}
-                onChange={e => setOtp(e.target.value)}
+                value={code}
+                onChange={e => setCode(e.target.value)}
                 required
               />
               {error && <p className="text-sm text-[#EE402D]">{error}</p>}
-              <Button type="submit" loading={loading} className="w-full" size="lg">
+              <Button type="submit" loading={verifying} className="w-full" size="lg">
                 Sign In
               </Button>
               <button
                 type="button"
                 onClick={() => {
-                  setStep('phone');
-                  setOtp('');
+                  setStep('email');
+                  setCode('');
                   setError('');
                 }}
                 className="w-full text-sm text-[#55606E] hover:text-[#006EB5] transition-colors"
               >
-                Change phone number
+                Change email address
               </button>
             </form>
           )}

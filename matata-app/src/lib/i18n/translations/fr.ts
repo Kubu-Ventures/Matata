@@ -11,7 +11,7 @@ export const fr: Record<TranslationKey, string> = {
   'landing.hero_title': 'Signalez les dégâts dans votre communauté',
   'landing.hero_desc': 'Aidez les équipes terrain PNUD à intervenir plus vite. Soumettez un rapport avec votre position et une photo — cela prend moins de 2 minutes.',
   'landing.cta_primary': 'Signaler des dégâts maintenant',
-  'landing.cta_secondary': 'Se connecter avec son téléphone',
+  'landing.cta_secondary': 'Se connecter avec un e-mail',
   'landing.crisis_section_title': 'Nous suivons tous les types de crises',
   'landing.how_title': 'Comment ça marche',
   'landing.step1_title': 'Localisez les dégâts',
