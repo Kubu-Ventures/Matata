@@ -5,6 +5,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import SyncManager from '@/components/ui/SyncManager';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
+import PrivyProvider from '@/components/PrivyProvider';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -38,12 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <body>
-        <LanguageProvider>
-          <SyncManager />
-          <OfflineBanner />
-          <InstallPrompt />
-          {children}
-        </LanguageProvider>
+<PrivyProvider>
+  <LanguageProvider>
+    <SyncManager />
+    <OfflineBanner />
+    <InstallPrompt />
+    {children}
+  </LanguageProvider>
+</PrivyProvider>
       </body>
     </html>
   );
