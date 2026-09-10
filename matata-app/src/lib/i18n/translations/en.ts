@@ -9,7 +9,7 @@ export const en = {
   'landing.hero_title': 'Report Crisis Damage in Your Community',
   'landing.hero_desc': 'Help Matata field teams respond faster. Submit a damage report with your location and a photo — it takes less than 2 minutes.',
   'landing.cta_primary': 'Report Damage Now',
-  'landing.cta_secondary': 'Sign In with Phone',
+  'landing.cta_secondary': 'Sign In with email',
   'landing.crisis_section_title': 'We track all crisis types',
   'landing.how_title': 'How it works',
   'landing.step1_title': 'Locate the damage',
