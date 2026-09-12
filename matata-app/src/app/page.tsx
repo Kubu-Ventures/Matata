@@ -107,10 +107,6 @@ export default function Page() {
           <Link href="/report">{t(locale, 'nav.report_now')}</Link>
           <Link href="/login">{t(locale, 'nav.sign_in')}</Link>
         </div>
-        <div>
-          <p className="footer-label">{t(locale, 'footer.undp')}</p>
-          <p>{t(locale, 'footer.undp_tagline')}</p>
-        </div>
       </footer>
     </main>
   );

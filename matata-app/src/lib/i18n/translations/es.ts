@@ -139,8 +139,6 @@ export const es: Record<TranslationKey, string> = {
   'health.inaccessible': 'No accesible',
   'health.unknown': 'Desconocido',
   'footer.tagline': 'Plataforma comunitaria de reporte de daños en crisis',
-  'footer.undp': 'Programa de las Naciones Unidas para el Desarrollo',
-  'footer.undp_tagline': 'Vidas empoderadas. Naciones resilientes.',
   'errors.rate_limit_exceeded': 'Demasiadas solicitudes. Por favor intenta de nuevo más tarde.',
   'errors.image_rejected': 'La imagen no pudo ser aceptada.',
   'errors.otp_invalid': 'Código OTP inválido.',

@@ -139,8 +139,6 @@ export const am: Record<TranslationKey, string> = {
   'health.inaccessible': 'ደርሶ አይሄድም',
   'health.unknown': 'አይታወቅም',
   'footer.tagline': 'የማህበረሰብ ቀውስ ጉዳት ሪፖርት ፕላትፎርም',
-  'footer.undp': 'የተባበሩት መንግስታት የልማት ፕሮግራም',
-  'footer.undp_tagline': 'የሚበቃ ሕይወት። ጠንካራ አገሮች።',
   'errors.rate_limit_exceeded': 'ብዙ ጥያቄዎች። እባክዎ ኋላ ላይ እንደገና ሞክሩ።',
   'errors.image_rejected': 'ምስሉ ሊቀበል አልቻለም።',
   'errors.otp_invalid': 'የOTP ኮድ ልክ አይደለም።',

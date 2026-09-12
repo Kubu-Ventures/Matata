@@ -139,8 +139,6 @@ export const so: Record<TranslationKey, string> = {
   'health.inaccessible': 'Lama gaari karo',
   'health.unknown': 'Lama garanayso',
   'footer.tagline': 'Platform warbixinta waxyeellada xaaladda bulshada',
-  'footer.undp': 'Barnaamijka Horumarinta Qaramada Midoobay',
-  'footer.undp_tagline': 'Nolosha xooggan. Umamaha adkaysta.',
   'errors.rate_limit_exceeded': 'Codsiyada badan. Fadlan mar kale isku day markii dambe.',
   'errors.image_rejected': 'Sawirrka lama qadin karo.',
   'errors.otp_invalid': 'Koodhka OTP ee aan sax ahayn.',

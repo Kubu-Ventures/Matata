@@ -24,7 +24,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-background/20 px-6 py-5 text-xs text-background/60 lg:px-10">
-        © {new Date().getFullYear()} Matata — {t('footer.undp')}
+        © {new Date().getFullYear()} Matata
       </div>
     </footer>
   )
