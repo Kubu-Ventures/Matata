@@ -16,6 +16,7 @@ import type {
   ExportJobResponse,
   ExportJobStatusResponse,
   Role,
+  AdminAccount,
 } from './types';
 import { clearAuth, getRefreshToken, getRole, saveAuth } from './auth';
 
@@ -252,6 +253,12 @@ export const exportApi = {
 };
 
 export const adminApi = {
-  provisionUser: (email: string, role: string) =>
-    request<{ message: string; account: { id: string; role: string } }>('/auth/analyst/register', { method: 'POST', body: JSON.stringify({ email, role }) }),
+  provisionUser: (email: string, role: string, region_geojson?: string) =>
+    request<{ message: string; account: { id: string; role: string } }>('/auth/analyst/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, role, region_geojson: region_geojson || undefined }),
+    }),
+  listAccounts: () => request<AdminAccount[]>('/auth/analyst/accounts'),
+  deactivateAccount: (id: string) =>
+    request<{ message: string }>(`/auth/analyst/accounts/${id}`, { method: 'DELETE' }),
 };

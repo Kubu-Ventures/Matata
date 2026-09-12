@@ -230,3 +230,15 @@ export interface AnalystStreamEvent {
   lng?: number | null;
   [key: string]: unknown;
 }
+
+// ---------------------------------------------------------------------------
+// Admin — provisioned analyst/responder/admin accounts
+// ---------------------------------------------------------------------------
+
+export interface AdminAccount {
+  id: string;
+  role: string;
+  region_geojson: string | null;
+  is_active: boolean;
+  created_by_sub: string;
+}
