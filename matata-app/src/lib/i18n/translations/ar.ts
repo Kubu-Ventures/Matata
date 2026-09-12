@@ -139,8 +139,6 @@ export const ar: Record<TranslationKey, string> = {
   'health.inaccessible': 'غير متاح',
   'health.unknown': 'غير معروف',
   'footer.tagline': 'منصة الإبلاغ عن أضرار الأزمات المجتمعية',
-  'footer.undp': 'برنامج الأمم المتحدة الإنمائي',
-  'footer.undp_tagline': 'حياة متكاملة. أمم مرنة.',
   'errors.rate_limit_exceeded': 'طلبات كثيرة جداً. يرجى المحاولة مرة أخرى لاحقاً.',
   'errors.image_rejected': 'تعذّر قبول الصورة.',
   'errors.otp_invalid': 'رمز OTP غير صالح.',

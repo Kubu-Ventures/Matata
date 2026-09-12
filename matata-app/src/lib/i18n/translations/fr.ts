@@ -139,8 +139,6 @@ export const fr: Record<TranslationKey, string> = {
   'health.inaccessible': 'Inaccessible',
   'health.unknown': 'Inconnu',
   'footer.tagline': 'Plateforme de signalement des dégâts en crise',
-  'footer.undp': 'Programme des Nations Unies pour le développement',
-  'footer.undp_tagline': 'Des vies épanouies. Des nations résilientes.',
   'errors.rate_limit_exceeded': 'Trop de requêtes. Veuillez réessayer plus tard.',
   'errors.image_rejected': 'L\'image n\'a pas pu être acceptée.',
   'errors.otp_invalid': 'Code OTP invalide.',

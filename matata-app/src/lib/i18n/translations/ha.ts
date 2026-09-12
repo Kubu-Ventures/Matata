@@ -139,8 +139,6 @@ export const ha: Record<TranslationKey, string> = {
   'health.inaccessible': 'Ba a iya samunsa',
   'health.unknown': 'Ba a sani',
   'footer.tagline': 'Platform na rarraba lalacewar rikici na al\'umma',
-  'footer.undp': 'Shirin Ci Gaban Majalisar Ɗinkin Duniya',
-  'footer.undp_tagline': 'Rayuwa mai ƙarfi. Al\'umma masu juriya.',
   'errors.rate_limit_exceeded': 'Buƙatoci da yawa. Don Allah sake gwadawa daga baya.',
   'errors.image_rejected': 'Ba a iya karɓar hoto.',
   'errors.otp_invalid': 'Lambar OTP ba daidai ba.',

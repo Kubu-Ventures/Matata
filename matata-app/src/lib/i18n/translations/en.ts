@@ -137,8 +137,6 @@ export const en = {
   'health.inaccessible': 'Not accessible',
   'health.unknown': 'Unknown',
   'footer.tagline': 'Community crisis damage reporting platform',
-  'footer.undp': 'United Nations Development Programme',
-  'footer.undp_tagline': 'Faster response. Stronger communities.',
   'errors.rate_limit_exceeded': 'Too many requests. Please try again later.',
   'errors.image_rejected': 'Image could not be accepted.',
   'errors.otp_invalid': 'Invalid OTP code.',

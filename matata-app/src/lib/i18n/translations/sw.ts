@@ -139,8 +139,6 @@ export const sw: Record<TranslationKey, string> = {
   'health.inaccessible': 'Haipatikani',
   'health.unknown': 'Haijulikani',
   'footer.tagline': 'Jukwaa la kuripoti uharibifu wa msiba wa jamii',
-  'footer.undp': 'Mpango wa Maendeleo wa Umoja wa Mataifa',
-  'footer.undp_tagline': 'Maisha yenye nguvu. Mataifa yanayostahimili.',
   'errors.rate_limit_exceeded': 'Maombi mengi sana. Tafadhali jaribu tena baadaye.',
   'errors.image_rejected': 'Picha haikuweza kukubaliwa.',
   'errors.otp_invalid': 'Nambari ya OTP si sahihi.',

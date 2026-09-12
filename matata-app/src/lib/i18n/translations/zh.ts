@@ -139,8 +139,6 @@ export const zh: Record<TranslationKey, string> = {
   'health.inaccessible': '无法访问',
   'health.unknown': '未知',
   'footer.tagline': '社区危机损失上报平台',
-  'footer.undp': '联合国开发计划署',
-  'footer.undp_tagline': '赋能生活。韧性国家。',
   'errors.rate_limit_exceeded': '请求过多。请稍后再试。',
   'errors.image_rejected': '无法接受图片。',
   'errors.otp_invalid': '无效的OTP验证码。',

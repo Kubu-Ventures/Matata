@@ -139,8 +139,6 @@ export const ru: Record<TranslationKey, string> = {
   'health.inaccessible': 'Недоступна',
   'health.unknown': 'Неизвестно',
   'footer.tagline': 'Платформа общественной отчётности об ущербе от кризисов',
-  'footer.undp': 'Программа развития Организации Объединённых Наций',
-  'footer.undp_tagline': 'Расширенные возможности жизни. Устойчивые нации.',
   'errors.rate_limit_exceeded': 'Слишком много запросов. Попробуйте позже.',
   'errors.image_rejected': 'Изображение не может быть принято.',
   'errors.otp_invalid': 'Неверный код OTP.',
