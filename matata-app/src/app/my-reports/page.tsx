@@ -63,7 +63,7 @@ export default function MyReportsPage() {
             You&apos;re reporting anonymously. This list only shows reports from your
             current session and will reset once it expires.{' '}
             <Link href="/login" className="text-[#006EB5] hover:underline font-medium">
-              Sign in with your phone number
+              Sign in with your email
             </Link>{' '}
             to keep permanent access to your report history.
           </div>

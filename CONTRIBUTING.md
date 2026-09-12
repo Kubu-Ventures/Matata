@@ -2,7 +2,7 @@
 
 Thanks for your interest in contributing! Matata is a mobile-first PWA for crowdsourced crisis/disaster damage reporting. This guide gets you from zero to an open pull request.
 
-The actual project lives entirely in [`matata-app/`](matata-app/) — this repo root is just a wrapper. Read [`matata-app/README.md`](matata-app/README.md) for architecture details before making non-trivial changes.
+The actual project lives entirely in [`matata-app/`](matata-app/); this repo root is just a wrapper. Read the [README](README.md) and [`docs/architecture.md`](docs/architecture.md) for architecture details before making non-trivial changes.
 
 ## Contents
 
@@ -29,7 +29,7 @@ This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Be respectf
 - **Git**
 - A GitHub account, and (if you're outside the core team) a fork of this repository
 
-There is no backend in this repo — the app talks to an external REST + SSE API (`NEXT_PUBLIC_API_URL`). You don't need to run a backend locally to work on the frontend; point `NEXT_PUBLIC_API_URL` at staging/prod, or ask a maintainer for a local backend setup if you need one.
+There is no backend in this repo. The app talks to an external REST + SSE API (`NEXT_PUBLIC_API_URL`). You don't need to run a backend locally to work on the frontend; point `NEXT_PUBLIC_API_URL` at staging/prod, or ask a maintainer for a local backend setup if you need one.
 
 ## Getting set up
 
@@ -41,7 +41,7 @@ cd Matata
 # 2. If you forked, add the upstream remote so you can stay in sync
 git remote add upstream https://github.com/Kubu-Ventures/Matata.git
 
-# 3. Install dependencies — always from matata-app/, there is no root package.json
+# 3. Install dependencies, always from matata-app/, there is no root package.json
 cd matata-app
 npm install
 
@@ -58,7 +58,7 @@ Open [http://localhost:3000](http://localhost:3000). Turbopack powers dev; the P
 
 This project uses **GitHub Flow**: `main` is always deployable, and all work happens on short-lived branches merged back via pull request.
 
-Branch naming (matches existing history — please follow it):
+Branch naming (matches existing history, please follow it):
 
 | Prefix | Use for |
 |---|---|
@@ -74,17 +74,17 @@ git pull origin main          # or `upstream main` if working from a fork
 git checkout -b feat/short-description
 ```
 
-Keep branches focused on one change — small, reviewable PRs merge faster.
+Keep branches focused on one change. Small, reviewable PRs merge faster.
 
 ## Making your change
 
 1. Make your change in `matata-app/`.
-2. Run the lint gate before committing — it's the only automated check in this repo (**there is no test framework configured**; don't add Jest/Vitest/Playwright without discussing it first):
+2. Run the lint gate before committing. It is the only automated check in this repo (**there is no test framework configured**; don't add Jest/Vitest/Playwright without discussing it first):
    ```bash
    npm run lint
    ```
 3. Manually verify the change in the browser. For UI changes, exercise the golden path and at least one edge case (offline queue, RTL locale, empty states, etc. as relevant).
-4. If you touched `next.config.ts`, PWA config, or ran a production build, the generated service worker under `public/` may change — commit that too (see prior commits tagged `chore(pwa): sync generated service worker artifact`).
+4. If you touched `next.config.ts`, PWA config, or ran a production build, the generated service worker under `public/` may change; commit that too (see prior commits tagged `chore(pwa): sync generated service worker artifact`).
 
 ## Commit messages
 
@@ -117,26 +117,26 @@ git push -u origin feat/short-description
 gh pr create --base main --title "feat: short description" --fill
 ```
 
-(No `gh` CLI? Push and open the PR from the GitHub UI instead — same target branch.)
+(No `gh` CLI? Push and open the PR from the GitHub UI instead, same target branch.)
 
-Opening a PR pre-fills the [PR template](.github/PULL_REQUEST_TEMPLATE.md) with a checklist covering lint, testing, PWA artifacts, and i18n — fill it in rather than deleting it.
+Opening a PR pre-fills the [PR template](.github/PULL_REQUEST_TEMPLATE.md) with a checklist covering lint, testing, PWA artifacts, and i18n, fill it in rather than deleting it.
 
 A maintainer will review, request changes if needed, and merge (squash preferred to keep `main` history clean) once approved and green.
 
 ## Code style
 
-Full architectural conventions are documented in [`matata-app/CLAUDE.md`](matata-app/CLAUDE.md) and [`matata-app/README.md`](matata-app/README.md) — read those before touching the API layer, auth, offline queue, or i18n. Highlights:
+Full architectural conventions are in the [README](README.md), [`docs/architecture.md`](docs/architecture.md), and [`matata-app/CLAUDE.md`](matata-app/CLAUDE.md). Read those before touching the API layer, auth, offline queue, or i18n. Highlights:
 
-- **TypeScript everywhere**, ESLint flat config (`eslint-config-next` core-web-vitals + typescript) — run `npm run lint`.
-- **API calls** go through `src/lib/api.ts`'s `request<T>()` wrapper and the grouped `*Api` objects (`authApi`, `reportsApi`, `analystApi`, `exportApi`, `adminApi`) — don't call `fetch` directly from components.
-- **Styling**: Tailwind v4 with hardcoded hex literals (no theme tokens) — reuse the existing palette (`#006EB5`, `#232E3D`, `#EDEFF0`, `#EE402D`, `#FBC412`) rather than inventing new colors. Use `cn()` (`src/lib/utils.ts`) to merge conditional classes, and extend the shared color/label maps there (`severityColors`, `statusColors`, etc.) instead of inlining new `switch` statements.
+- **TypeScript everywhere**, ESLint flat config (`eslint-config-next` core-web-vitals + typescript), run `npm run lint`.
+- **API calls** go through `src/lib/api.ts`'s `request<T>()` wrapper and the grouped `*Api` objects (`authApi`, `reportsApi`, `analystApi`, `exportApi`, `adminApi`), don't call `fetch` directly from components.
+- **Styling**: Tailwind v4 with hardcoded hex literals (no theme tokens), reuse the existing palette (`#006EB5`, `#232E3D`, `#EDEFF0`, `#EE402D`, `#FBC412`) rather than inventing new colors. Use `cn()` (`src/lib/utils.ts`) to merge conditional classes, and extend the shared color/label maps there (`severityColors`, `statusColors`, etc.) instead of inlining new `switch` statements.
 - **i18n**: add new keys to `src/lib/i18n/translations/en.ts` (the source of truth for the `TranslationKey` type) first, then other locales. Use the `useLanguage()` hook's `t` inside components already under a `LanguageProvider`.
 - **Comments**: avoid comments that restate what the code does. Only comment on non-obvious *why* (a workaround, an invariant, a subtle constraint).
 - **No speculative abstraction**: don't add config flags, generic helpers, or error handling for cases that can't occur. Match the scope of the PR to the problem it solves.
 
 ## Reporting bugs and requesting features
 
-Open a GitHub issue using the [bug report](.github/ISSUE_TEMPLATE/bug_report.yml) or [feature request](.github/ISSUE_TEMPLATE/feature_request.yml) template — they prompt for the details maintainers need (repro steps, affected surface, environment, etc.).
+Open a GitHub issue using the [bug report](.github/ISSUE_TEMPLATE/bug_report.yml) or [feature request](.github/ISSUE_TEMPLATE/feature_request.yml) template, they prompt for the details maintainers need (repro steps, affected surface, environment, etc.).
 
 Search existing issues first to avoid duplicates.
 
@@ -152,7 +152,7 @@ git merge upstream/main   # or: git pull upstream main
 git checkout -b feat/my-change
 
 # Stage and commit
-git add <specific files>   # avoid `git add -A`/`.` — review what you're staging
+git add <specific files>   # avoid `git add -A`/`.`, review what you're staging
 git commit -m "feat(scope): short summary"
 
 # Keep your branch up to date with main (preferred over merge for a clean history)
@@ -169,7 +169,7 @@ git rebase -i origin/main
 git push -u origin feat/my-change
 git push
 
-# Undo uncommitted changes to a file (careful — irreversible)
+# Undo uncommitted changes to a file (careful, irreversible)
 git restore <file>
 
 # See what changed

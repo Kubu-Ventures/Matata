@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { PrivyClientProvider } from '@/components/PrivyClientProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import SyncManager from '@/components/ui/SyncManager';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
-import PrivyProvider from '@/components/PrivyProvider';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -39,14 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <body>
-<PrivyProvider>
-  <LanguageProvider>
-    <SyncManager />
-    <OfflineBanner />
-    <InstallPrompt />
-    {children}
-  </LanguageProvider>
-</PrivyProvider>
+        <PrivyClientProvider>
+          <LanguageProvider>
+            <SyncManager />
+            <OfflineBanner />
+            <InstallPrompt />
+            {children}
+          </LanguageProvider>
+        </PrivyClientProvider>
       </body>
     </html>
   );

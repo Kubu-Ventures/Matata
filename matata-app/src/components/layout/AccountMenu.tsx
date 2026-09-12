@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
+import { clearPrivySession } from '@/components/PrivyClientProvider';
 import { getRole, clearAuth } from '@/lib/auth';
 import type { Role } from '@/lib/types';
 
 /**
  * Small header widget for the public-facing (non-analyst) app that reflects
- * whether the current visitor is anonymous or a phone-verified reporter.
+ * whether the current visitor is anonymous or an email-verified reporter.
  *
  * Until now there was no visible difference between the two states and no
  * way for a signed-in reporter to see their history or log out — this
@@ -36,6 +37,9 @@ export function AccountMenu() {
     } catch {
       // Token may already be expired/revoked — clear local state regardless.
     }
+    // End the Privy browser session too, so the next visit to /login starts
+    // clean instead of resuming a stale session.
+    clearPrivySession();
     clearAuth();
     window.location.href = '/';
   }

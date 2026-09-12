@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { getToken, getRole, clearAuth } from '@/lib/auth';
 import { authApi, statsApi } from '@/lib/api';
+import { clearPrivySession } from '@/components/PrivyClientProvider';
 import { AnalystStreamProvider, useAnalystStreamContext } from '@/contexts/AnalystStreamContext';
 
 const NAV_ITEMS = [
@@ -153,6 +154,7 @@ export default function AnalystLayout({ children }: { children: React.ReactNode 
     try {
       await authApi.logout();
     } catch {}
+    clearPrivySession();
     clearAuth();
     router.push('/');
   }

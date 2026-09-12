@@ -3,6 +3,22 @@ import withPWA from '@ducanh2912/next-pwa';
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  webpack: (config, { webpack }) => {
+    // @privy-io/react-auth dynamically imports this Farcaster mini-app wallet
+    // connector, guarded by its own try/catch, only when running inside a
+    // Farcaster mini-app (see the `document.referrer`/`window.farcaster`
+    // check in its bundle). We only use Privy's email-OTP login and never
+    // install this optional package, so webpack's static analysis of that
+    // import() otherwise emits a "Module not found" warning on every build.
+    // IgnorePlugin skips resolving it; Privy's own catch block already
+    // handles the resulting rejection as "package not available".
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^@farcaster\/mini-app-solana$/,
+      })
+    );
+    return config;
+  },
 };
 
 export default withPWA({
