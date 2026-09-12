@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const LoginForm = dynamic(
   () => import('@/components/LoginForm').then((m) => m.LoginForm),
@@ -10,6 +11,7 @@ const LoginForm = dynamic(
 );
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
 
@@ -23,11 +25,11 @@ export default function LoginPage() {
             </div>
             <span className="font-semibold text-lg text-[#232E3D]">Matata</span>
           </Link>
-          <h1 className="text-2xl font-bold text-[#232E3D]">Sign in</h1>
+          <h1 className="text-2xl font-bold text-[#232E3D]">{t('login.title')}</h1>
           <p className="text-sm text-[#55606E] mt-1">
             {step === 'email'
-              ? 'Enter your email to receive a code'
-              : `Enter the 6-digit code sent to ${email}`}
+              ? t('login.email_step_desc')
+              : t('login.otp_step_desc', { email })}
           </p>
         </div>
 
@@ -42,9 +44,9 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-[#55606E] mt-6">
-          Reporting anonymously?{' '}
+          {t('login.anonymous_cta')}{' '}
           <Link href="/report" className="text-[#006EB5] hover:underline">
-            Continue without signing in
+            {t('login.anonymous_link')}
           </Link>
         </p>
       </div>

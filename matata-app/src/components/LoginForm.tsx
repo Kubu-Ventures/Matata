@@ -6,6 +6,7 @@ import { useLoginWithEmail } from '@privy-io/react-auth';
 import { exchangePrivySession, privyErrorMessage } from '@/lib/privyLogin';
 import { clearPrivySession, isPrivyConfigured } from '@/components/PrivyClientProvider';
 import { clearAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -28,6 +29,7 @@ export function LoginForm({
   onStepChange?: (step: 'email' | 'code', email: string) => void;
 }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const analyst = variant === 'analyst';
 
   const [step, setStep] = useState<'email' | 'code'>('email');
@@ -49,9 +51,7 @@ export function LoginForm({
         if (analyst && !isElevated) {
           clearAuth();
           clearPrivySession();
-          setError(
-            'This account does not have analyst access. Please contact your administrator.'
-          );
+          setError(t('login.analyst_no_access'));
           setFinishing(false);
           return;
         }
@@ -60,13 +60,13 @@ export function LoginForm({
         const apiErr = err as { status?: number; message?: string };
         setError(
           apiErr.status === 429
-            ? 'Too many attempts. Please wait a minute and try again.'
-            : apiErr.message || 'Could not complete sign in. Please try again.'
+            ? t('errors.rate_limit_exceeded')
+            : apiErr.message || t('errors.internal')
         );
         setFinishing(false);
       }
     },
-    onError: (err) => setError(privyErrorMessage(err)),
+    onError: (err) => setError(privyErrorMessage(err, t)),
   });
 
   const sending = state.status === 'sending-code';
@@ -79,7 +79,7 @@ export function LoginForm({
       await sendCode({ email });
       goToStep('code');
     } catch (err: unknown) {
-      setError(privyErrorMessage(err));
+      setError(privyErrorMessage(err, t));
     }
   }
 
@@ -89,14 +89,14 @@ export function LoginForm({
     try {
       await loginWithCode({ code });
     } catch (err: unknown) {
-      setError(privyErrorMessage(err));
+      setError(privyErrorMessage(err, t));
     }
   }
 
   if (!isPrivyConfigured) {
     return (
       <p className="text-sm text-[#EE402D]">
-        Sign in is not configured for this environment (NEXT_PUBLIC_PRIVY_APP_ID is unset).
+        {t('login.not_configured')}
       </p>
     );
   }
@@ -106,22 +106,18 @@ export function LoginForm({
       <form onSubmit={handleSendCode} className="space-y-4">
         <Input
           id="email"
-          label="Email address"
+          label={t('login.email_label')}
           type="email"
           autoComplete="email"
-          placeholder={analyst ? 'you@example.org' : 'you@example.com'}
+          placeholder={analyst ? 'you@example.org' : t('login.email_placeholder')}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          helper={
-            analyst
-              ? 'The address your administrator provisioned'
-              : "We'll email you a one-time code"
-          }
+          helper={analyst ? t('login.analyst_email_helper') : t('login.email_helper')}
           required
         />
         {error && <p className="text-sm text-[#EE402D]">{error}</p>}
         <Button type="submit" loading={sending} className="w-full" size="lg">
-          Send Code
+          {t('login.send_code')}
         </Button>
       </form>
     );
@@ -131,7 +127,7 @@ export function LoginForm({
     <form onSubmit={handleVerifyCode} className="space-y-4">
       <Input
         id="code"
-        label="Verification code"
+        label={t('login.otp_label')}
         type="text"
         inputMode="numeric"
         pattern="[0-9]{6}"
@@ -144,7 +140,7 @@ export function LoginForm({
       />
       {error && <p className="text-sm text-[#EE402D]">{error}</p>}
       <Button type="submit" loading={verifying} className="w-full" size="lg">
-        {analyst ? 'Sign In' : 'Verify Code'}
+        {analyst ? t('login.analyst_sign_in') : t('login.verify_code')}
       </Button>
       <button
         type="button"
@@ -155,7 +151,7 @@ export function LoginForm({
         }}
         className="w-full text-sm text-[#55606E] hover:text-[#006EB5] transition-colors"
       >
-        Change email address
+        {t('login.change_email')}
       </button>
     </form>
   );

@@ -2,6 +2,7 @@ import { getAccessToken, getIdentityToken } from '@privy-io/react-auth';
 import { authApi } from './api';
 import { saveAuth } from './auth';
 import type { Role } from './types';
+import type { TranslationKey } from './i18n';
 
 const ELEVATED: Role[] = ['analyst', 'responder', 'admin'];
 
@@ -38,15 +39,22 @@ export async function exchangePrivySession(): Promise<ExchangeResult> {
   return { role, isElevated: ELEVATED.includes(role) };
 }
 
-/** Map a Privy `useLoginWithEmail` error to user-facing copy in our tone. */
-export function privyErrorMessage(err: unknown): string {
+/**
+ * Map a Privy `useLoginWithEmail` error to localised, user-facing copy.
+ * `t` is `useLanguage().t`, threaded in by the caller since this file has no
+ * component context of its own.
+ */
+export function privyErrorMessage(
+  err: unknown,
+  t: (key: TranslationKey) => string
+): string {
   const msg = (err instanceof Error ? err.message : String(err ?? '')).toLowerCase();
-  if (msg.includes('expired')) return 'That code has expired. Request a new one.';
+  if (msg.includes('expired')) return t('errors.otp_expired');
   if (msg.includes('rate') || msg.includes('too many') || msg.includes('limit')) {
-    return 'Too many attempts. Please wait a minute and try again.';
+    return t('errors.rate_limit_exceeded');
   }
   if (msg.includes('invalid') || msg.includes('incorrect') || msg.includes('wrong')) {
-    return 'That code is not correct. Check it and try again.';
+    return t('errors.otp_invalid');
   }
-  return 'Something went wrong. Please try again.';
+  return t('errors.internal');
 }
