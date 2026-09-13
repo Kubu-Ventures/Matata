@@ -9,8 +9,8 @@ export default function SyncManager() {
   useEffect(() => {
     const handleOnline = async () => {
       if (!navigator.onLine) return;
-      await syncQueue();
-      window.dispatchEvent(new Event('matata_sync'));
+      const syncedCount = await syncQueue();
+      window.dispatchEvent(new CustomEvent('matata_sync', { detail: { syncedCount } }));
     };
 
     window.addEventListener('online', handleOnline);

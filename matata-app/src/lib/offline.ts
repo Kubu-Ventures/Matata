@@ -68,20 +68,22 @@ export function dataUrlToBlob(dataUrl: string): Blob {
 
 let isSyncing = false;
 
-export async function syncQueue(): Promise<void> {
-  if (isSyncing) return;
+/** Returns how many queued reports were successfully synced this run. */
+export async function syncQueue(): Promise<number> {
+  if (isSyncing) return 0;
   const pending = getPendingReports();
-  if (pending.length === 0) return;
+  if (pending.length === 0) return 0;
 
   isSyncing = true;
   try {
-    await syncPendingReports(pending);
+    return await syncPendingReports(pending);
   } finally {
     isSyncing = false;
   }
 }
 
-async function syncPendingReports(pending: OfflineReport[]): Promise<void> {
+async function syncPendingReports(pending: OfflineReport[]): Promise<number> {
+  let syncedCount = 0;
   for (const report of pending) {
     try {
       const fd = new FormData();
@@ -98,6 +100,7 @@ async function syncPendingReports(pending: OfflineReport[]): Promise<void> {
       const data = await res.json();
       const serverId: string = data.id;
       markSynced(report.localId, serverId);
+      syncedCount++;
 
       if (report.photoDataUrl && serverId) {
         try {
@@ -113,4 +116,5 @@ async function syncPendingReports(pending: OfflineReport[]): Promise<void> {
       // Network failure — will retry next time
     }
   }
+  return syncedCount;
 }
