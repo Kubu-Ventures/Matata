@@ -12,6 +12,33 @@ export interface ExchangeResult {
 }
 
 /**
+ * `getIdentityToken()` isn't a cache read — it calls into Privy's internal
+ * client to mint/refresh the token over the network. Called immediately in
+ * `onComplete` (the instant `useLoginWithEmail` resolves), that internal
+ * client reference is sometimes not wired up yet, so the call silently
+ * resolves to null/undefined instead of throwing. A couple of short retries
+ * gives it time to catch up before we give up and fall back to a reporter
+ * session (the same fallback as before, just far less likely to fire).
+ */
+async function getIdentityTokenWithRetry(
+  attempts = 3,
+  delayMs = 300
+): Promise<string | null> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const token = await getIdentityToken();
+      if (token) return token;
+    } catch {
+      // fall through to retry
+    }
+    if (i < attempts - 1) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  return null;
+}
+
+/**
  * Take the Privy session created by `useLoginWithEmail` and exchange it at our
  * backend for a Matata session (`matata_token` + refresh token in
  * localStorage). Everything downstream — `recoverSession`, the `request()`
@@ -26,12 +53,7 @@ export async function exchangePrivySession(): Promise<ExchangeResult> {
   // Identity token carries the verified email so a provisioned analyst resolves
   // to their role. It may be absent if the Privy app has identity tokens
   // disabled — the backend still issues a reporter session in that case.
-  let identityToken: string | null = null;
-  try {
-    identityToken = await getIdentityToken();
-  } catch {
-    identityToken = null;
-  }
+  const identityToken = await getIdentityTokenWithRetry();
 
   const data = await authApi.verifyPrivy(privyToken, identityToken);
   const role = data.role as Role;
