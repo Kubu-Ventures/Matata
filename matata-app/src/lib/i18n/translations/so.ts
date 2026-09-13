@@ -88,6 +88,7 @@ export const so: Record<TranslationKey, string> = {
   'report.photo_label': 'Sawir (ikhtiyaar, lagu talinayaa)',
   'report.photo_take': 'Sawir Qaado',
   'report.photo_choose': 'Ka dooro Sawirrada',
+  'report.photo_processing': 'Sawirka waa la diyaarinayaa…',
   'report.photo_hint': 'JPEG, ugu badan 15 MB',
   'report.back': 'Dib u noqo',
   'report.continue': 'Sii wad',

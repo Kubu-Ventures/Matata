@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { authApi, reportsApi } from '@/lib/api';
 import { saveAuth, getToken } from '@/lib/auth';
 import { addToQueue } from '@/lib/offline';
+import { compressPhoto } from '@/lib/image';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
@@ -34,24 +35,61 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+const DRAFT_KEY = 'matata_report_draft';
+
+function loadDraft(): { step: number; form: FormData } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(step: number, form: FormData) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ step, form }));
+  } catch {
+    /* storage unavailable (private mode, quota) — draft resume is best-effort */
+  }
+}
+
+function clearDraft() {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+const DEFAULT_FORM: FormData = {
+  lat: null,
+  lng: null,
+  landmark_description: '',
+  crisis_type: '',
+  infrastructure_type: '',
+  damage_severity: '',
+  electricity_status: '',
+  health_services_status: '',
+  most_pressing_needs: '',
+  debris_clearing_needed: null,
+};
+
 export default function ReportPage() {
   const router = useRouter();
   const { locale } = useLanguage();
-  const [step, setStep] = useState(0);
+  // Android/Chrome can silently reload a backgrounded PWA to reclaim memory
+  // (e.g. while the native camera app is in the foreground for photo
+  // capture), wiping all component state. Seed from a sessionStorage draft
+  // so the user resumes near where they left off instead of at step one.
+  const [step, setStep] = useState(() => loadDraft()?.step ?? 0);
   const [isOnline, setIsOnline] = useState(true);
-  const [form, setForm] = useState<FormData>({
-    lat: null,
-    lng: null,
-    landmark_description: '',
-    crisis_type: '',
-    infrastructure_type: '',
-    damage_severity: '',
-    electricity_status: '',
-    health_services_status: '',
-    most_pressing_needs: '',
-    debris_clearing_needed: null,
-  });
+  const [form, setForm] = useState<FormData>(() => loadDraft()?.form ?? DEFAULT_FORM);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [compressingPhoto, setCompressingPhoto] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locError, setLocError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -84,8 +122,25 @@ export default function ReportPage() {
     }
   }, []);
 
+  useEffect(() => {
+    saveDraft(step, form);
+  }, [step, form]);
+
   function setField<K extends keyof FormData>(key: K, val: FormData[K]) {
     setForm(prev => ({ ...prev, [key]: val }));
+  }
+
+  async function handlePhotoSelected(file: File | null) {
+    if (!file) {
+      setPhoto(null);
+      return;
+    }
+    setCompressingPhoto(true);
+    try {
+      setPhoto(await compressPhoto(file));
+    } finally {
+      setCompressingPhoto(false);
+    }
   }
 
   function getLocation() {
@@ -140,12 +195,14 @@ export default function ReportPage() {
         try { photoDataUrl = await readFileAsDataUrl(photo); } catch { /* skip */ }
       }
       const localId = addToQueue({ fields, ...(photoDataUrl ? { photoDataUrl } : {}) });
+      clearDraft();
       router.push(`/report/queued?ref=${localId}`);
       return;
     }
 
     try {
       const result = await reportsApi.submit(fields, photo);
+      clearDraft();
       router.push(`/report/${result.id}?submitted=1`);
     } catch (err: unknown) {
       const apiErr = err as { status?: number };
@@ -451,7 +508,13 @@ export default function ReportPage() {
             <div>
               <p className="text-sm font-medium text-[#232E3D] mb-2">{t(locale, 'report.photo_label')}</p>
 
-              {photo && (
+              {compressingPhoto && (
+                <div className="mb-3 flex items-center gap-3 border border-[#EDEFF0] rounded-lg p-3 bg-[#F7F8FA]">
+                  <p className="text-sm text-[#55606E]">{t(locale, 'report.photo_processing')}</p>
+                </div>
+              )}
+
+              {!compressingPhoto && photo && (
                 <div className="mb-3 flex items-center gap-3 border border-[#EDEFF0] rounded-lg p-3 bg-[#F7F8FA]">
                   <div className="text-2xl">📷</div>
                   <div className="min-w-0">
@@ -487,14 +550,14 @@ export default function ReportPage() {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={e => setPhoto(e.target.files?.[0] || null)}
+                onChange={e => handlePhotoSelected(e.target.files?.[0] || null)}
               />
               <input
                 ref={galleryRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={e => setPhoto(e.target.files?.[0] || null)}
+                onChange={e => handlePhotoSelected(e.target.files?.[0] || null)}
               />
             </div>
 

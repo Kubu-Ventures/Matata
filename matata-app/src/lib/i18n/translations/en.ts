@@ -86,6 +86,7 @@ export const en = {
   'report.photo_label': 'Photo (optional, recommended)',
   'report.photo_take': 'Take Photo',
   'report.photo_choose': 'Choose from Gallery',
+  'report.photo_processing': 'Processing photo…',
   'report.photo_hint': 'JPEG, max 15 MB',
   'report.back': 'Back',
   'report.continue': 'Continue',
