@@ -89,6 +89,8 @@ export const ru: Record<TranslationKey, string> = {
   'report.photo_take': 'Сделать фото',
   'report.photo_choose': 'Выбрать из галереи',
   'report.photo_processing': 'Обработка фото…',
+  'report.camera_capture': 'Сделать снимок',
+  'report.camera_cancel': 'Отмена',
   'report.photo_hint': 'JPEG, макс. 15 МБ',
   'report.back': 'Назад',
   'report.continue': 'Продолжить',

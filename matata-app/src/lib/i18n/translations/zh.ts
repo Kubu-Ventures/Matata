@@ -89,6 +89,8 @@ export const zh: Record<TranslationKey, string> = {
   'report.photo_take': '拍照',
   'report.photo_choose': '从相册选择',
   'report.photo_processing': '正在处理照片…',
+  'report.camera_capture': '拍照',
+  'report.camera_cancel': '取消',
   'report.photo_hint': 'JPEG，最大15 MB',
   'report.back': '返回',
   'report.continue': '继续',

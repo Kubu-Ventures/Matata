@@ -94,8 +94,11 @@ export default function ReportPage() {
   const [locError, setLocError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [showCamera, setShowCamera] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const STEPS = [
     t(locale, 'report.step_location'),
@@ -126,6 +129,20 @@ export default function ReportPage() {
     saveDraft(step, form);
   }, [step, form]);
 
+  // Stop the camera stream on unmount so the light/hardware indicator
+  // doesn't stay on if the reporter navigates away mid-capture.
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    };
+  }, []);
+
+  useEffect(() => {
+    if (showCamera && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [showCamera]);
+
   function setField<K extends keyof FormData>(key: K, val: FormData[K]) {
     setForm(prev => ({ ...prev, [key]: val }));
   }
@@ -141,6 +158,53 @@ export default function ReportPage() {
     } finally {
       setCompressingPhoto(false);
     }
+  }
+
+  async function openCamera() {
+    // Launching the OS camera app via <input capture> backgrounds this
+    // installed PWA; on some Android/Chrome versions the callback that's
+    // supposed to deliver the captured photo back to the page silently
+    // never fires when the app is reclaimed in the background (no error,
+    // the change event just never arrives). An in-page getUserMedia
+    // preview never leaves the page, so there's no handoff to lose.
+    // Fall back to the OS picker only if the camera stream can't be opened
+    // (unsupported browser, permission denied, no camera).
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1600 }, height: { ideal: 1600 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setShowCamera(true);
+    } catch {
+      cameraRef.current?.click();
+    }
+  }
+
+  function closeCamera() {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    setShowCamera(false);
+  }
+
+  async function capturePhoto() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) {
+      closeCamera();
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    const blob = ctx
+      ? await new Promise<Blob | null>(resolve => {
+          ctx.drawImage(video, 0, 0);
+          canvas.toBlob(resolve, 'image/jpeg', 0.85);
+        })
+      : null;
+    closeCamera();
+    if (blob) await handlePhotoSelected(new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' }));
   }
 
   function getLocation() {
@@ -527,7 +591,7 @@ export default function ReportPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => cameraRef.current?.click()}
+                  onClick={openCamera}
                   className="border-2 border-dashed border-[#EDEFF0] rounded-lg p-4 text-center cursor-pointer hover:border-[#B5D5F5] transition-colors"
                 >
                   <div className="text-2xl mb-1">📸</div>
@@ -601,6 +665,30 @@ export default function ReportPage() {
           )}
         </div>
       </div>
+
+      {showCamera && (
+        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+          <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" />
+          <div className="absolute top-0 inset-x-0 flex justify-end p-4">
+            <button
+              type="button"
+              onClick={closeCamera}
+              aria-label={t(locale, 'report.camera_cancel')}
+              className="w-10 h-10 rounded-full bg-black/50 text-white text-xl flex items-center justify-center"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="absolute bottom-0 inset-x-0 flex justify-center pb-10 pt-6 bg-gradient-to-t from-black/60 to-transparent">
+            <button
+              type="button"
+              onClick={capturePhoto}
+              aria-label={t(locale, 'report.camera_capture')}
+              className="w-16 h-16 rounded-full bg-white border-4 border-white/40"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
