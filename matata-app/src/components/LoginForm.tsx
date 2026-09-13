@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLoginWithEmail } from '@privy-io/react-auth';
 import { exchangePrivySession, privyErrorMessage } from '@/lib/privyLogin';
@@ -38,6 +38,27 @@ export function LoginForm({
   const [error, setError] = useState('');
   const [finishing, setFinishing] = useState(false);
 
+  // --- TEMPORARY DEBUG — REMOVE AFTER DIAGNOSIS ---
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  function debug(msg: string) {
+    const line = `${new Date().toISOString().slice(11, 23)}  ${msg}`;
+    setDebugLog(prev => [...prev, line]);
+  }
+  function stringifyErr(err: unknown): string {
+    try {
+      if (err instanceof Error) {
+        return JSON.stringify(
+          { name: err.name, message: err.message, ...(err as unknown as Record<string, unknown>) },
+          Object.getOwnPropertyNames(err)
+        );
+      }
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
+  }
+  // --- END TEMPORARY DEBUG ---
+
   function goToStep(next: 'email' | 'code') {
     setStep(next);
     onStepChange?.(next, email);
@@ -45,9 +66,11 @@ export function LoginForm({
 
   const { sendCode, loginWithCode, state } = useLoginWithEmail({
     onComplete: async () => {
+      debug('onComplete fired'); // TEMP DEBUG
       setFinishing(true);
       try {
         const { isElevated } = await exchangePrivySession();
+        debug(`exchangePrivySession resolved isElevated=${isElevated}`); // TEMP DEBUG
         if (analyst && !isElevated) {
           clearAuth();
           clearPrivySession();
@@ -57,6 +80,7 @@ export function LoginForm({
         }
         router.push(isElevated ? '/analyst/dashboard' : '/report');
       } catch (err: unknown) {
+        debug(`exchangePrivySession threw: ${stringifyErr(err)}`); // TEMP DEBUG
         const apiErr = err as { status?: number; message?: string };
         setError(
           apiErr.status === 429
@@ -66,8 +90,16 @@ export function LoginForm({
         setFinishing(false);
       }
     },
-    onError: (err) => setError(privyErrorMessage(err, t)),
+    onError: (err) => {
+      debug(`useLoginWithEmail onError: ${stringifyErr(err)}`); // TEMP DEBUG
+      setError(privyErrorMessage(err, t));
+    },
   });
+
+  // TEMP DEBUG — log every Privy state transition so a silent hang is visible.
+  useEffect(() => {
+    debug(`privy state.status = ${state.status}`);
+  }, [state.status]);
 
   const sending = state.status === 'sending-code';
   const verifying = state.status === 'submitting-code' || finishing;
@@ -75,10 +107,13 @@ export function LoginForm({
   async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    debug(`handleSendCode called, email="${email}"`); // TEMP DEBUG
     try {
       await sendCode({ email });
+      debug('sendCode() resolved successfully'); // TEMP DEBUG
       goToStep('code');
     } catch (err: unknown) {
+      debug(`sendCode() threw: ${stringifyErr(err)}`); // TEMP DEBUG
       setError(privyErrorMessage(err, t));
     }
   }
@@ -86,12 +121,37 @@ export function LoginForm({
   async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    debug('handleVerifyCode called'); // TEMP DEBUG
     try {
       await loginWithCode({ code });
+      debug('loginWithCode() resolved successfully'); // TEMP DEBUG
     } catch (err: unknown) {
+      debug(`loginWithCode() threw: ${stringifyErr(err)}`); // TEMP DEBUG
       setError(privyErrorMessage(err, t));
     }
   }
+
+  // --- TEMPORARY DEBUG PANEL — REMOVE AFTER DIAGNOSIS ---
+  const debugPanel = (
+    <pre
+      style={{
+        marginTop: '1rem',
+        padding: '0.75rem',
+        background: '#111',
+        color: '#0f0',
+        fontSize: '11px',
+        lineHeight: 1.4,
+        borderRadius: '6px',
+        maxHeight: '260px',
+        overflow: 'auto',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+      }}
+    >
+      {'DEBUG PANEL (temporary) — status=' + state.status + '\n' + debugLog.join('\n')}
+    </pre>
+  );
+  // --- END TEMPORARY DEBUG PANEL ---
 
   if (!isPrivyConfigured) {
     return (
@@ -119,6 +179,7 @@ export function LoginForm({
         <Button type="submit" loading={sending} className="w-full" size="lg">
           {t('login.send_code')}
         </Button>
+        {debugPanel}
       </form>
     );
   }
@@ -153,6 +214,7 @@ export function LoginForm({
       >
         {t('login.change_email')}
       </button>
+      {debugPanel}
     </form>
   );
 }
