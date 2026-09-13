@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLoginWithEmail } from '@privy-io/react-auth';
+import { useLoginWithEmail, useIdentityToken } from '@privy-io/react-auth';
 import { exchangePrivySession, privyErrorMessage } from '@/lib/privyLogin';
 import { clearPrivySession, isPrivyConfigured } from '@/components/PrivyClientProvider';
 import { clearAuth } from '@/lib/auth';
@@ -43,11 +43,28 @@ export function LoginForm({
     onStepChange?.(next, email);
   }
 
+  // useIdentityToken() reads Privy's own React context, which PrivyProvider
+  // keeps genuinely up to date — unlike the standalone getIdentityToken()
+  // function (see privyLogin.ts for why that one silently fails). Mirrored
+  // into a ref so the onComplete closure below always reads the latest
+  // value instead of the one captured when useLoginWithEmail was set up.
+  const { identityToken } = useIdentityToken();
+  const identityTokenRef = useRef(identityToken);
+  useEffect(() => {
+    identityTokenRef.current = identityToken;
+  }, [identityToken]);
+
   const { sendCode, loginWithCode, state } = useLoginWithEmail({
     onComplete: async () => {
       setFinishing(true);
       try {
-        const { isElevated } = await exchangePrivySession();
+        // The identity token can land a beat after login completes (it's
+        // populated by Privy's own effect) — give it a short window before
+        // proceeding without one.
+        if (!identityTokenRef.current) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        const { isElevated } = await exchangePrivySession(identityTokenRef.current);
         if (analyst && !isElevated) {
           clearAuth();
           clearPrivySession();
