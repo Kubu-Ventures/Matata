@@ -88,6 +88,7 @@ export const am: Record<TranslationKey, string> = {
   'report.photo_label': 'ፎቶ (አማራጭ፣ ይመከራል)',
   'report.photo_take': 'ፎቶ አንሳ',
   'report.photo_choose': 'ከአልበም ምረጥ',
+  'report.photo_processing': 'ፎቶ በማዘጋጀት ላይ…',
   'report.photo_hint': 'JPEG፣ ከፍተኛ 15 MB',
   'report.back': 'ተመለስ',
   'report.continue': 'ቀጥሉ',
