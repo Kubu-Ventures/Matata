@@ -25,7 +25,12 @@ export default withPWA({
   dest: 'public',
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
+  // Must stay false: next-pwa's reloadOnOnline registers its own `online`
+  // listener that hard-reloads the page. That reload races with (and
+  // aborts) SyncManager's in-flight fetch() calls uploading the offline
+  // report queue, so queued reports never get marked synced once back
+  // online. See src/components/ui/SyncManager.tsx.
+  reloadOnOnline: false,
   disable: process.env.NODE_ENV === 'development',
   extendDefaultRuntimeCaching: true,
   fallbacks: {

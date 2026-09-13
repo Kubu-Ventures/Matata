@@ -64,10 +64,22 @@ export function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([arr], { type: mime });
 }
 
+let isSyncing = false;
+
 export async function syncQueue(token?: string): Promise<void> {
+  if (isSyncing) return;
   const pending = getPendingReports();
   if (pending.length === 0) return;
 
+  isSyncing = true;
+  try {
+    await syncPendingReports(pending, token);
+  } finally {
+    isSyncing = false;
+  }
+}
+
+async function syncPendingReports(pending: OfflineReport[], token?: string): Promise<void> {
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://157.173.121.74:8000/api/v1';
   const locale = typeof window !== 'undefined' ? (localStorage.getItem('matata_lang') || 'en') : 'en';
   const headers: Record<string, string> = { 'Accept-Language': locale };
