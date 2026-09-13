@@ -1,14 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getPendingCount } from '@/lib/offline';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
+
+const SUCCESS_DISPLAY_MS = 6000;
 
 export default function OfflineBanner() {
   const { locale } = useLanguage();
   const [isOnline, setIsOnline] = useState(true);
   const [pending, setPending] = useState(0);
+  const [showSynced, setShowSynced] = useState(false);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -16,7 +20,22 @@ export default function OfflineBanner() {
 
     const handleOnline = () => { setIsOnline(true); setPending(getPendingCount()); };
     const handleOffline = () => setIsOnline(false);
-    const handleSync = () => setPending(getPendingCount());
+    // Sync happens silently in the background, so without this there was no
+    // way to tell whether a queued report actually made it to the server or
+    // is still stuck -- the "pending" banner just quietly disappeared.
+    // Surface an explicit, temporary confirmation instead. Only claim
+    // success once the queue has actually fully drained, so a partial
+    // failure (some synced, one still stuck) doesn't get reported as done.
+    const handleSync = (e: Event) => {
+      const remaining = getPendingCount();
+      setPending(remaining);
+      const syncedCount = (e as CustomEvent<{ syncedCount?: number }>).detail?.syncedCount ?? 0;
+      if (syncedCount > 0 && remaining === 0) {
+        setShowSynced(true);
+        if (successTimerRef.current) clearTimeout(successTimerRef.current);
+        successTimerRef.current = setTimeout(() => setShowSynced(false), SUCCESS_DISPLAY_MS);
+      }
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -25,8 +44,17 @@ export default function OfflineBanner() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('matata_sync', handleSync);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
     };
   }, []);
+
+  if (showSynced) {
+    return (
+      <div role="status" aria-live="polite" className="fixed top-0 inset-x-0 z-50 bg-green-600 text-white text-sm font-medium px-4 py-2 text-center">
+        ✓ {t(locale, 'offline.synced')}
+      </div>
+    );
+  }
 
   if (isOnline && pending === 0) return null;
 
