@@ -89,6 +89,8 @@ export const ha: Record<TranslationKey, string> = {
   'report.photo_take': 'Dauki Hoto',
   'report.photo_choose': 'Zaɓi daga Hotuna',
   'report.photo_processing': 'Ana shirya hoto…',
+  'report.camera_capture': 'Dauki hoto',
+  'report.camera_cancel': 'Soke',
   'report.photo_hint': 'JPEG, mafi yawa 15 MB',
   'report.back': 'Koma',
   'report.continue': 'Ci gaba',

@@ -89,6 +89,8 @@ export const ar: Record<TranslationKey, string> = {
   'report.photo_take': 'التقاط صورة',
   'report.photo_choose': 'اختيار من المعرض',
   'report.photo_processing': 'جارٍ معالجة الصورة…',
+  'report.camera_capture': 'التقاط الصورة',
+  'report.camera_cancel': 'إلغاء',
   'report.photo_hint': 'JPEG، الحد الأقصى 15 ميغابايت',
   'report.back': 'رجوع',
   'report.continue': 'متابعة',

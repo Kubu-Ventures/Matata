@@ -89,6 +89,8 @@ export const sw: Record<TranslationKey, string> = {
   'report.photo_take': 'Piga Picha',
   'report.photo_choose': 'Chagua kutoka kwenye Picha',
   'report.photo_processing': 'Inachakata picha…',
+  'report.camera_capture': 'Piga picha',
+  'report.camera_cancel': 'Ghairi',
   'report.photo_hint': 'JPEG, kiwango cha juu 15 MB',
   'report.back': 'Rudi',
   'report.continue': 'Endelea',

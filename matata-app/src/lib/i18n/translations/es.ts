@@ -89,6 +89,8 @@ export const es: Record<TranslationKey, string> = {
   'report.photo_take': 'Tomar Foto',
   'report.photo_choose': 'Elegir de la Galería',
   'report.photo_processing': 'Procesando foto…',
+  'report.camera_capture': 'Tomar foto',
+  'report.camera_cancel': 'Cancelar',
   'report.photo_hint': 'JPEG, máx 15 MB',
   'report.back': 'Atrás',
   'report.continue': 'Continuar',
