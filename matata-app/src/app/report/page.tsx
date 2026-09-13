@@ -56,7 +56,8 @@ export default function ReportPage() {
   const [locError, setLocError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
 
   const STEPS = [
     t(locale, 'report.step_location'),
@@ -100,7 +101,12 @@ export default function ReportPage() {
         setLocError(t(locale, 'report.location_error'));
         setLocating(false);
       },
-      { timeout: 10000 }
+      // enableHighAccuracy forces the device's own GPS chip rather than the
+      // browser's default network/Wi-Fi-assisted lookup, which needs
+      // connectivity and otherwise fails outright when offline. A GPS-only
+      // fix can take longer (especially indoors), hence the longer timeout,
+      // and maximumAge lets a recent fix satisfy the request immediately.
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
     );
   }
 
@@ -444,26 +450,47 @@ export default function ReportPage() {
 
             <div>
               <p className="text-sm font-medium text-[#232E3D] mb-2">{t(locale, 'report.photo_label')}</p>
-              <div
-                className="border-2 border-dashed border-[#EDEFF0] rounded-lg p-6 text-center cursor-pointer hover:border-[#B5D5F5] transition-colors"
-                onClick={() => fileRef.current?.click()}
-              >
-                {photo ? (
-                  <div>
-                    <div className="text-2xl mb-1">📷</div>
-                    <p className="text-sm font-medium text-[#006EB5]">{photo.name}</p>
+
+              {photo && (
+                <div className="mb-3 flex items-center gap-3 border border-[#EDEFF0] rounded-lg p-3 bg-[#F7F8FA]">
+                  <div className="text-2xl">📷</div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[#006EB5] truncate">{photo.name}</p>
                     <p className="text-xs text-[#55606E]">{(photo.size / 1024 / 1024).toFixed(1)} MB</p>
                   </div>
-                ) : (
-                  <div>
-                    <div className="text-2xl mb-1">📷</div>
-                    <p className="text-sm text-[#55606E]">{t(locale, 'report.photo_tap')}</p>
-                    <p className="text-xs text-[#55606E] mt-1">{t(locale, 'report.photo_hint')}</p>
-                  </div>
-                )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => cameraRef.current?.click()}
+                  className="border-2 border-dashed border-[#EDEFF0] rounded-lg p-4 text-center cursor-pointer hover:border-[#B5D5F5] transition-colors"
+                >
+                  <div className="text-2xl mb-1">📸</div>
+                  <p className="text-sm text-[#55606E]">{t(locale, 'report.photo_take')}</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryRef.current?.click()}
+                  className="border-2 border-dashed border-[#EDEFF0] rounded-lg p-4 text-center cursor-pointer hover:border-[#B5D5F5] transition-colors"
+                >
+                  <div className="text-2xl mb-1">🖼️</div>
+                  <p className="text-sm text-[#55606E]">{t(locale, 'report.photo_choose')}</p>
+                </button>
               </div>
+              <p className="text-xs text-[#55606E] mt-2 text-center">{t(locale, 'report.photo_hint')}</p>
+
               <input
-                ref={fileRef}
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={e => setPhoto(e.target.files?.[0] || null)}
+              />
+              <input
+                ref={galleryRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
