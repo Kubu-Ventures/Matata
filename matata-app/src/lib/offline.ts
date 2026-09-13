@@ -1,3 +1,5 @@
+import { fetchWithAuthRetry } from './api';
+
 const QUEUE_KEY = 'matata_offline_queue';
 
 export interface OfflineReport {
@@ -66,31 +68,31 @@ export function dataUrlToBlob(dataUrl: string): Blob {
 
 let isSyncing = false;
 
-export async function syncQueue(token?: string): Promise<void> {
+export async function syncQueue(): Promise<void> {
   if (isSyncing) return;
   const pending = getPendingReports();
   if (pending.length === 0) return;
 
   isSyncing = true;
   try {
-    await syncPendingReports(pending, token);
+    await syncPendingReports(pending);
   } finally {
     isSyncing = false;
   }
 }
 
-async function syncPendingReports(pending: OfflineReport[], token?: string): Promise<void> {
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://157.173.121.74:8000/api/v1';
-  const locale = typeof window !== 'undefined' ? (localStorage.getItem('matata_lang') || 'en') : 'en';
-  const headers: Record<string, string> = { 'Accept-Language': locale };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
+async function syncPendingReports(pending: OfflineReport[]): Promise<void> {
   for (const report of pending) {
     try {
       const fd = new FormData();
       fd.append('metadata', JSON.stringify(report.fields));
 
-      const res = await fetch(`${BASE_URL}/reports`, { method: 'POST', headers, body: fd });
+      // fetchWithAuthRetry (shared with every online API call) mints a
+      // fresh session on a 401 before retrying once. A raw fetch() here
+      // would silently and permanently fail once the stored access token
+      // expires (60 min) -- easily outlived by an offline stretch -- since
+      // there'd be nothing to refresh it and every retry would 401 forever.
+      const res = await fetchWithAuthRetry('/reports', { method: 'POST', body: fd });
       if (!res.ok) continue;
 
       const data = await res.json();
@@ -102,7 +104,7 @@ async function syncPendingReports(pending: OfflineReport[], token?: string): Pro
           const blob = dataUrlToBlob(report.photoDataUrl);
           const photoFd = new FormData();
           photoFd.append('photo', blob, 'photo.jpg');
-          await fetch(`${BASE_URL}/reports/${serverId}/photo`, { method: 'PATCH', headers, body: photoFd });
+          await fetchWithAuthRetry(`/reports/${serverId}/photo`, { method: 'PATCH', body: photoFd });
         } catch {
           // Photo upload failure is non-critical
         }
