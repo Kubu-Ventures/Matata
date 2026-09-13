@@ -218,26 +218,57 @@ export default function ReportPage() {
     if (blob) await handlePhotoSelected(new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' }));
   }
 
+  function locationErrorKey(code: number): Parameters<typeof t>[1] {
+    // GeolocationPositionError codes: 1 PERMISSION_DENIED, 2
+    // POSITION_UNAVAILABLE, 3 TIMEOUT. Each has a different real cause and
+    // fix, so a single generic message left people stuck with no idea
+    // whether to check a permission prompt, a device setting, or just wait
+    // longer -- collapsing them was effectively an accessibility bug.
+    if (code === 1) return 'report.location_error_denied';
+    if (code === 2) return 'report.location_error_unavailable';
+    return 'report.location_error_timeout';
+  }
+
   function getLocation() {
     setLocating(true);
     setLocError('');
-    navigator.geolocation.getCurrentPosition(
-      pos => {
+
+    // Without connectivity there's no assisted-GPS data (ephemeris) to
+    // speed up a fix, so a cold GPS lock can genuinely take up to a
+    // minute, especially indoors or under cloud cover -- not a bug, just
+    // physics. watchPosition (vs. one blocking getCurrentPosition call)
+    // resolves as soon as ANY fix arrives rather than forcing a wait for
+    // a fixed timeout, and we hold the window open long enough for a
+    // real cold start instead of giving up after 10-20s.
+    let watchId: number | undefined;
+    let giveUpTimer: ReturnType<typeof setTimeout> | undefined;
+    let settled = false;
+
+    const finish = (cb: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+      if (giveUpTimer !== undefined) clearTimeout(giveUpTimer);
+      cb();
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+      pos => finish(() => {
         setField('lat', pos.coords.latitude);
         setField('lng', pos.coords.longitude);
         setLocating(false);
-      },
-      () => {
-        setLocError(t(locale, 'report.location_error'));
+      }),
+      err => finish(() => {
+        setLocError(t(locale, locationErrorKey(err.code)));
         setLocating(false);
-      },
-      // enableHighAccuracy forces the device's own GPS chip rather than the
-      // browser's default network/Wi-Fi-assisted lookup, which needs
-      // connectivity and otherwise fails outright when offline. A GPS-only
-      // fix can take longer (especially indoors), hence the longer timeout,
-      // and maximumAge lets a recent fix satisfy the request immediately.
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+      }),
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 45000 }
     );
+
+    giveUpTimer = setTimeout(() => finish(() => {
+      setLocError(t(locale, 'report.location_error_timeout'));
+      setLocating(false);
+    }), 45000);
   }
 
   function canProceed() {
@@ -355,11 +386,12 @@ export default function ReportPage() {
                   : 'border-[#006EB5] bg-[#006EB5] text-white hover:bg-[#005a94]'
               } disabled:opacity-60`}
             >
-              {locating ? '…' : form.lat !== null
+              {locating ? t(locale, 'report.location_locating') : form.lat !== null
                 ? `${t(locale, 'report.location_captured')} (${form.lat.toFixed(4)}, ${form.lng?.toFixed(4)})`
                 : t(locale, 'report.use_location')}
             </button>
 
+            {locating && <p className="text-xs text-[#55606E]">{t(locale, 'report.location_locating_hint')}</p>}
             {locError && <p className="text-sm text-[#EE402D]">{locError}</p>}
 
             <div className="relative flex items-center gap-3">
