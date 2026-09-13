@@ -93,7 +93,7 @@ async function recoverSession(): Promise<boolean> {
  * including raw-blob downloads that don't go through request()/JSON parsing.
  * Auth endpoints themselves are excluded to avoid recursion.
  */
-async function fetchWithAuthRetry(path: string, options: RequestInit = {}): Promise<globalThis.Response> {
+export async function fetchWithAuthRetry(path: string, options: RequestInit = {}): Promise<globalThis.Response> {
   let res = await rawFetch(path, options);
 
   const isAuthEndpoint = path.startsWith('/auth/');
