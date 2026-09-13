@@ -1,4 +1,4 @@
-import { getAccessToken, getIdentityToken } from '@privy-io/react-auth';
+import { getAccessToken } from '@privy-io/react-auth';
 import { authApi } from './api';
 import { saveAuth } from './auth';
 import type { Role } from './types';
@@ -12,40 +12,24 @@ export interface ExchangeResult {
 }
 
 /**
- * `getIdentityToken()` isn't a cache read — it calls into Privy's internal
- * client to mint/refresh the token over the network. Called immediately in
- * `onComplete` (the instant `useLoginWithEmail` resolves), that internal
- * client reference is sometimes not wired up yet, so the call silently
- * resolves to null/undefined instead of throwing. A couple of short retries
- * gives it time to catch up before we give up and fall back to a reporter
- * session (the same fallback as before, just far less likely to fire).
- */
-async function getIdentityTokenWithRetry(
-  attempts = 3,
-  delayMs = 300
-): Promise<string | null> {
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const token = await getIdentityToken();
-      if (token) return token;
-    } catch {
-      // fall through to retry
-    }
-    if (i < attempts - 1) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-  return null;
-}
-
-/**
  * Take the Privy session created by `useLoginWithEmail` and exchange it at our
  * backend for a Matata session (`matata_token` + refresh token in
  * localStorage). Everything downstream — `recoverSession`, the `request()`
  * wrapper, refresh rotation — is unchanged; only the proof of identity handed
  * to the backend is different.
+ *
+ * `identityToken` must come from the caller's own `useIdentityToken()` hook
+ * value, not the standalone `getIdentityToken()` function — that function
+ * calls into Privy's internal client over the network and, called right as
+ * login completes, that internal reference is often not wired up yet, so it
+ * silently resolves to null instead of throwing (confirmed via backend
+ * logging showing the identity token never arriving even for a correctly
+ * provisioned account). `useIdentityToken()` reads from Privy's own React
+ * context instead, which `PrivyProvider` keeps genuinely up to date.
  */
-export async function exchangePrivySession(): Promise<ExchangeResult> {
+export async function exchangePrivySession(
+  identityToken: string | null
+): Promise<ExchangeResult> {
   const privyToken = await getAccessToken();
   if (!privyToken) {
     throw new Error('Privy did not return an access token. Please try signing in again.');
@@ -53,8 +37,6 @@ export async function exchangePrivySession(): Promise<ExchangeResult> {
   // Identity token carries the verified email so a provisioned analyst resolves
   // to their role. It may be absent if the Privy app has identity tokens
   // disabled — the backend still issues a reporter session in that case.
-  const identityToken = await getIdentityTokenWithRetry();
-
   const data = await authApi.verifyPrivy(privyToken, identityToken);
   const role = data.role as Role;
   saveAuth(data.token, role, data.refresh_token);
