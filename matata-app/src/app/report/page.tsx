@@ -99,6 +99,7 @@ export default function ReportPage() {
   const galleryRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const captureButtonRef = useRef<HTMLButtonElement>(null);
 
   const STEPS = [
     t(locale, 'report.step_location'),
@@ -141,6 +142,10 @@ export default function ReportPage() {
     if (showCamera && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
     }
+    // Move focus into the dialog so keyboard/D-pad-only devices (no touch
+    // screen) land straight on the shutter button instead of leaving focus
+    // stuck on the now-hidden "Take Photo" trigger behind the overlay.
+    if (showCamera) captureButtonRef.current?.focus();
   }, [showCamera]);
 
   function setField<K extends keyof FormData>(key: K, val: FormData[K]) {
@@ -167,8 +172,14 @@ export default function ReportPage() {
     // never fires when the app is reclaimed in the background (no error,
     // the change event just never arrives). An in-page getUserMedia
     // preview never leaves the page, so there's no handoff to lose.
-    // Fall back to the OS picker only if the camera stream can't be opened
-    // (unsupported browser, permission denied, no camera).
+    // Fall back to the OS picker if the camera stream can't be opened
+    // (unsupported browser, permission denied, no camera) -- feature
+    // phones and older browsers generally don't implement getUserMedia at
+    // all, so check for it up front rather than relying on a throw.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      cameraRef.current?.click();
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1600 }, height: { ideal: 1600 } },
@@ -667,7 +678,13 @@ export default function ReportPage() {
       </div>
 
       {showCamera && (
-        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t(locale, 'report.camera_capture')}
+          onKeyDown={e => { if (e.key === 'Escape') closeCamera(); }}
+          className="fixed inset-0 z-[60] bg-black flex flex-col"
+        >
           <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" />
           <div className="absolute top-0 inset-x-0 flex justify-end p-4">
             <button
@@ -681,6 +698,7 @@ export default function ReportPage() {
           </div>
           <div className="absolute bottom-0 inset-x-0 flex justify-center pb-10 pt-6 bg-gradient-to-t from-black/60 to-transparent">
             <button
+              ref={captureButtonRef}
               type="button"
               onClick={capturePhoto}
               aria-label={t(locale, 'report.camera_capture')}
