@@ -108,6 +108,7 @@ export const zh: Record<TranslationKey, string> = {
   'offline.syncing': '正在同步离线报告...',
   'offline.synced': '所有报告已同步。',
   'offline.pending_count': '{count} 份报告待同步',
+  'offline.sync_failed': '一份排队的报告被拒绝：{error}',
   'offline.token_warning': '警告：您的会话将在60分钟后过期。请在此之前连接互联网提交已排队的报告。',
   'status.received': '报告已收到',
   'status.received_desc': '您的报告已进入分析员队列，即将被审核。',

@@ -108,6 +108,7 @@ export const so: Record<TranslationKey, string> = {
   'offline.syncing': 'Warbixinada offline ah la isku waafajinayaa...',
   'offline.synced': 'Dhammaan warbixinada waa la isku waafajiyay.',
   'offline.pending_count': '{count} warbixin sugaya isku waafajinta',
+  'offline.sync_failed': 'Warbixin safka ku jirtay ayaa la diiday: {error}',
   'offline.token_warning': 'Digniinta: Shirkaagii wuxuu dhici doonaa 60 daqiiqo gudahood. Ku xiriir internetka ka hor si aad u dirtid warbixinada la socodsiiyay.',
   'status.received': 'Warbixinta la helay',
   'status.received_desc': 'Warbixintaadu waxay ku jirtaa safka xaliyayaasha oo waxaa lagu dib u eegi doonaa dhakhso.',

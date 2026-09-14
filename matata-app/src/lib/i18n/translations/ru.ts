@@ -108,6 +108,7 @@ export const ru: Record<TranslationKey, string> = {
   'offline.syncing': 'Синхронизация офлайн-отчётов...',
   'offline.synced': 'Все отчёты синхронизированы.',
   'offline.pending_count': '{count} отчёт(ов) ожидает синхронизации',
+  'offline.sync_failed': 'Отчёт в очереди был отклонён: {error}',
   'offline.token_warning': 'Внимание: ваша сессия истекает через 60 мин. Подключитесь к интернету до этого для отправки очередных отчётов.',
   'status.received': 'Отчёт получен',
   'status.received_desc': 'Ваш отчёт находится в очереди аналитиков и будет рассмотрен в ближайшее время.',

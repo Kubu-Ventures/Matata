@@ -108,6 +108,7 @@ export const fr: Record<TranslationKey, string> = {
   'offline.syncing': 'Synchronisation des rapports hors ligne...',
   'offline.synced': 'Tous les rapports sont synchronisés.',
   'offline.pending_count': '{count} rapport(s) en attente de synchronisation',
+  'offline.sync_failed': 'Un rapport en attente a été rejeté : {error}',
   'offline.token_warning': 'Attention : Votre session expire dans 60 min. Connectez-vous à internet avant pour soumettre les rapports en file d\'attente.',
   'status.received': 'Rapport reçu',
   'status.received_desc': 'Votre rapport est dans la file d\'attente des analystes et sera examiné prochainement.',

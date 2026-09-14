@@ -108,6 +108,7 @@ export const am: Record<TranslationKey, string> = {
   'offline.syncing': 'ከኢንተርኔት ውጭ ሪፖርቶችን ማስተካከያ እያደረጉ...',
   'offline.synced': 'ሁሉም ሪፖርቶች ተስተካክለዋል።',
   'offline.pending_count': '{count} ሪፖርቶች ማስተካከያ ይጠብቃሉ',
+  'offline.sync_failed': 'በመስመር ላይ የነበረ ሪፖርት ውድቅ ተደርጓል፦ {error}',
   'offline.token_warning': 'ማስጠንቀቂያ፡ ክፍለ ጊዜዎ ከ60 ደቂቃ በኋላ ያልቃል። ቅድም ወደ ኢንተርኔት ይገናኙ ለተቀሩ ሪፖርቶችን ለማስገባት።',
   'status.received': 'ሪፖርት ተቀብሏል',
   'status.received_desc': 'ሪፖርቱዎ በተንታኝ ሰልፍ ውስጥ ነው እና ብዙም ሳይቆይ ይገመገማል።',
