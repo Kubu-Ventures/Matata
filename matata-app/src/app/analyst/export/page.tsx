@@ -116,7 +116,7 @@ export default function ExportPage() {
             onChange={e => setFilter('status', e.target.value)}
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
               label="Crisis type"
               options={[
@@ -143,7 +143,7 @@ export default function ExportPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
               <span className="text-xs text-[#55606E]">From</span>
               <input

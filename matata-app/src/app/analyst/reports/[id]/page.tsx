@@ -163,8 +163,8 @@ export default function AnalystReportDetailPage({
       )}
 
       {report.status === 'pending_merge_review' && (
-        <div className="bg-[#FBC412]/10 border border-[#FBC412]/40 rounded-lg p-4 mb-6 flex items-center justify-between gap-4">
-          <div>
+        <div className="bg-[#FBC412]/10 border border-[#FBC412]/40 rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-[#232E3D]">Awaiting merge review</p>
             <p className="text-xs text-[#55606E] mt-0.5">
               The duplicate-detection system flagged this report as a likely duplicate (composite
@@ -209,7 +209,7 @@ export default function AnalystReportDetailPage({
               </h1>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
               {[
                 {
                   label: 'Report ID',

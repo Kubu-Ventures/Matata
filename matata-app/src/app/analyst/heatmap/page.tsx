@@ -34,9 +34,9 @@ export default function HeatmapPage() {
   const pointCount = data?.features.length ?? 0;
 
   return (
-    <div className="p-6 h-screen flex flex-col max-w-6xl">
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <div>
+    <div className="p-6 h-[100dvh] flex flex-col max-w-6xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 flex-shrink-0">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-[#232E3D]">Damage Heatmap</h1>
           <p className="text-sm text-[#55606E] mt-0.5">
             {loading ? 'Loading…' : `${pointCount.toLocaleString()} reports plotted, weighted by severity`}
@@ -44,7 +44,7 @@ export default function HeatmapPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 text-xs text-[#55606E]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#55606E]">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#006EB5]" /> Minimal
           </span>
