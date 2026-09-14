@@ -357,12 +357,6 @@ export default function ReportPage() {
         />
       </div>
 
-      {!isOnline && (
-        <div className="bg-[#FBC412] text-[#232E3D] text-xs font-medium text-center py-1.5 px-4">
-          {t(locale, 'offline.banner')}
-        </div>
-      )}
-
       <div className="flex-1 max-w-xl mx-auto w-full px-4 py-8">
         <p className="text-xs font-semibold text-[#006EB5] uppercase tracking-widest mb-2">
           {STEPS[step]}

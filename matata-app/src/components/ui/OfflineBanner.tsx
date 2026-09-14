@@ -55,9 +55,16 @@ export default function OfflineBanner() {
     };
   }, []);
 
+  // sticky, not fixed: a fixed banner is removed from document flow and
+  // floats on TOP of whatever is at the top of the page underneath it --
+  // with no compensating padding anywhere, that meant this banner covered
+  // the report page's own top bar (home link, account menu, language
+  // switcher), making it unclickable until the banner happened to clear.
+  // sticky reserves its own space, pushing page content down like a normal
+  // block, while still pinning to the top of the viewport once scrolled.
   if (showSynced) {
     return (
-      <div role="status" aria-live="polite" className="fixed top-0 inset-x-0 z-50 bg-green-600 text-white text-sm font-medium px-4 py-2 text-center">
+      <div role="status" aria-live="polite" className="sticky top-0 inset-x-0 z-50 bg-green-600 text-white text-sm font-medium px-4 py-2 text-center">
         ✓ {t(locale, 'offline.synced')}
       </div>
     );
@@ -67,7 +74,7 @@ export default function OfflineBanner() {
 
   if (!isOnline) {
     return (
-      <div role="alert" className="fixed top-0 inset-x-0 z-50 bg-[#FBC412] text-[#232E3D] text-sm font-medium px-4 py-2 text-center">
+      <div role="alert" className="sticky top-0 inset-x-0 z-50 bg-[#FBC412] text-[#232E3D] text-sm font-medium px-4 py-2 text-center">
         {t(locale, 'offline.banner')}
       </div>
     );
@@ -75,14 +82,14 @@ export default function OfflineBanner() {
 
   if (failedError) {
     return (
-      <div role="alert" className="fixed top-0 inset-x-0 z-50 bg-[#EE402D] text-white text-sm font-medium px-4 py-2 text-center">
+      <div role="alert" className="sticky top-0 inset-x-0 z-50 bg-[#EE402D] text-white text-sm font-medium px-4 py-2 text-center">
         {t(locale, 'offline.sync_failed', { error: failedError })}
       </div>
     );
   }
 
   return (
-    <div role="status" className="fixed top-0 inset-x-0 z-50 bg-[#006EB5] text-white text-sm font-medium px-4 py-2 text-center">
+    <div role="status" className="sticky top-0 inset-x-0 z-50 bg-[#006EB5] text-white text-sm font-medium px-4 py-2 text-center">
       {t(locale, 'offline.pending_count', { count: pending })}
     </div>
   );
