@@ -1,6 +1,6 @@
 # Matata, Crisis Damage Reporting (Frontend)
 
-Built and maintained by Origin Africa Software Limited.
+Built and maintained by [Origin Africa Software Limited](https://www.origin.co.ke).
 
 Matata is a mobile-first Progressive Web App for crowdsourced crisis and
 disaster damage reporting. People in the field report building and
