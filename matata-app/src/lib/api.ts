@@ -167,6 +167,21 @@ export const analystApi = {
   listReports: (params: ReportListParams = {}) =>
     request<PaginatedReports>(`/analyst/reports${toQueryString(params)}`),
   getReport: (id: string) => request<AnalystReportDetail>(`/analyst/reports/${id}`),
+  /**
+   * `photo_url` on the report detail is an object storage key, not a
+   * fetchable URL, and this endpoint requires the same Authorization header
+   * as every other call — so it can't be used directly as an <img src>.
+   * Fetch the bytes here and hand the caller a Blob to wrap in
+   * URL.createObjectURL() instead.
+   */
+  getReportPhotoBlob: async (id: string): Promise<Blob> => {
+    const res = await fetchWithAuthRetry(`/analyst/reports/${id}/photo`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw { status: res.status, message: err.error || res.statusText };
+    }
+    return res.blob();
+  },
   updateStatus: (id: string, status: string, reason?: string, notes?: string) =>
     request<Report>(`/analyst/reports/${id}/status`, {
       method: 'PATCH',
