@@ -108,6 +108,7 @@ export const ha: Record<TranslationKey, string> = {
   'offline.syncing': 'Sync\'in rahotannin da ba sa layi...',
   'offline.synced': 'An sync rahotanni duka.',
   'offline.pending_count': '{count} rahoto/rahotanni suna jiran sync',
+  'offline.sync_failed': 'An ƙi rahoton da ke jiran layi: {error}',
   'offline.token_warning': 'Gargaɗi: Zaman ku zai ƙare a cikin minti 60. Haɗa intanet kafin lokacin don aika rahotanni da aka jera.',
   'status.received': 'An karɓi rahoto',
   'status.received_desc': 'Rahotonku yana cikin jerin masu nazari kuma za a duba shi nan ba da daɗewa ba.',

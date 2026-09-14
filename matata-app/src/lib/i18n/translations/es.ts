@@ -108,6 +108,7 @@ export const es: Record<TranslationKey, string> = {
   'offline.syncing': 'Sincronizando informes sin conexión...',
   'offline.synced': 'Todos los informes sincronizados.',
   'offline.pending_count': '{count} informe(s) pendiente(s) de sincronización',
+  'offline.sync_failed': 'Un informe en cola fue rechazado: {error}',
   'offline.token_warning': 'Advertencia: Tu sesión expira en 60 min. Conéctate a internet antes para enviar informes en cola.',
   'status.received': 'Informe recibido',
   'status.received_desc': 'Tu informe está en la cola de analistas y será revisado pronto.',

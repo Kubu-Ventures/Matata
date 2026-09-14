@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getPendingCount } from '@/lib/offline';
+import { getPendingCount, getFailedReports } from '@/lib/offline';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 
@@ -11,24 +11,31 @@ export default function OfflineBanner() {
   const { locale } = useLanguage();
   const [isOnline, setIsOnline] = useState(true);
   const [pending, setPending] = useState(0);
+  const [failedError, setFailedError] = useState<string | null>(null);
   const [showSynced, setShowSynced] = useState(false);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setIsOnline(navigator.onLine);
-    setPending(getPendingCount());
+    const refresh = () => {
+      setPending(getPendingCount());
+      const failed = getFailedReports();
+      setFailedError(failed.length > 0 ? failed[0].lastError ?? null : null);
+    };
 
-    const handleOnline = () => { setIsOnline(true); setPending(getPendingCount()); };
+    setIsOnline(navigator.onLine);
+    refresh();
+
+    const handleOnline = () => { setIsOnline(true); refresh(); };
     const handleOffline = () => setIsOnline(false);
     // Sync happens silently in the background, so without this there was no
     // way to tell whether a queued report actually made it to the server or
-    // is still stuck -- the "pending" banner just quietly disappeared.
-    // Surface an explicit, temporary confirmation instead. Only claim
-    // success once the queue has actually fully drained, so a partial
-    // failure (some synced, one still stuck) doesn't get reported as done.
+    // is still stuck -- the "pending" banner just quietly disappeared, and a
+    // report the server actively rejected (bad data, moderation, whatever)
+    // would retry forever with zero indication of why. Surface both an
+    // explicit success confirmation and the real failure reason.
     const handleSync = (e: Event) => {
+      refresh();
       const remaining = getPendingCount();
-      setPending(remaining);
       const syncedCount = (e as CustomEvent<{ syncedCount?: number }>).detail?.syncedCount ?? 0;
       if (syncedCount > 0 && remaining === 0) {
         setShowSynced(true);
@@ -62,6 +69,14 @@ export default function OfflineBanner() {
     return (
       <div role="alert" className="fixed top-0 inset-x-0 z-50 bg-[#FBC412] text-[#232E3D] text-sm font-medium px-4 py-2 text-center">
         {t(locale, 'offline.banner')}
+      </div>
+    );
+  }
+
+  if (failedError) {
+    return (
+      <div role="alert" className="fixed top-0 inset-x-0 z-50 bg-[#EE402D] text-white text-sm font-medium px-4 py-2 text-center">
+        {t(locale, 'offline.sync_failed', { error: failedError })}
       </div>
     );
   }

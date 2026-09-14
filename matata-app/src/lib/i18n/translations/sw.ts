@@ -108,6 +108,7 @@ export const sw: Record<TranslationKey, string> = {
   'offline.syncing': 'Inasawazisha ripoti za nje ya mtandao...',
   'offline.synced': 'Ripoti zote zimesawazishwa.',
   'offline.pending_count': '{count} ripoti zinasubiri kusawazishwa',
+  'offline.sync_failed': 'Ripoti iliyokuwa kwenye foleni ilikataliwa: {error}',
   'offline.token_warning': 'Onyo: Kikao chako kinaisha baada ya dakika 60. Unganisha intaneti kabla ya wakati huo kutuma ripoti zilizopangwa.',
   'status.received': 'Ripoti imepokelewa',
   'status.received_desc': 'Ripoti yako iko kwenye foleni ya wachambuzi na itakaguliwa hivi karibuni.',

@@ -108,6 +108,7 @@ export const ar: Record<TranslationKey, string> = {
   'offline.syncing': 'جارٍ مزامنة التقارير غير المتصلة...',
   'offline.synced': 'تمت مزامنة جميع التقارير.',
   'offline.pending_count': '{count} تقرير/تقارير في انتظار المزامنة',
+  'offline.sync_failed': 'تم رفض تقرير في قائمة الانتظار: {error}',
   'offline.token_warning': 'تحذير: تنتهي جلستك خلال 60 دقيقة. اتصل بالإنترنت قبل ذلك لإرسال التقارير المنتظرة.',
   'status.received': 'تم استلام التقرير',
   'status.received_desc': 'تقريرك في قائمة انتظار المحللين وسيتم مراجعته قريباً.',

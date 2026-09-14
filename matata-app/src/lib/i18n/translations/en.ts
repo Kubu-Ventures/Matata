@@ -106,6 +106,7 @@ export const en = {
   'offline.syncing': 'Syncing offline reports...',
   'offline.synced': 'All reports synced.',
   'offline.pending_count': '{count} report(s) pending sync',
+  'offline.sync_failed': 'A queued report was rejected: {error}',
   'offline.token_warning': 'Warning: Your session expires in 60 min. Connect to internet before then to submit queued reports.',
   'status.received': 'Report received',
   'status.received_desc': 'Your report is in the analyst queue and will be reviewed shortly.',

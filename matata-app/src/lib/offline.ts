@@ -7,6 +7,11 @@ export interface OfflineReport {
   submittedAt: string;
   synced: boolean;
   serverId?: string;
+  /** Set when the server has actively rejected this report (4xx/5xx with a
+   *  parsed body), as opposed to a network failure that just means "not
+   *  online yet". Surfaced so a permanently-invalid queued report doesn't
+   *  retry forever in total silence. */
+  lastError?: string;
   fields: {
     crisis_type: string;
     infrastructure_type: string;
@@ -52,8 +57,18 @@ export function getPendingReports(): OfflineReport[] {
   return loadQueue().filter(r => !r.synced);
 }
 
+/** Pending reports the server has actively rejected at least once. */
+export function getFailedReports(): OfflineReport[] {
+  return loadQueue().filter(r => !r.synced && r.lastError);
+}
+
 export function markSynced(localId: string, serverId: string) {
-  const queue = loadQueue().map(r => r.localId === localId ? { ...r, synced: true, serverId } : r);
+  const queue = loadQueue().map(r => r.localId === localId ? { ...r, synced: true, serverId, lastError: undefined } : r);
+  saveQueue(queue);
+}
+
+export function markSyncFailed(localId: string, message: string) {
+  const queue = loadQueue().map(r => r.localId === localId ? { ...r, lastError: message } : r);
   saveQueue(queue);
 }
 
@@ -95,7 +110,15 @@ async function syncPendingReports(pending: OfflineReport[]): Promise<number> {
       // expires (60 min) -- easily outlived by an offline stretch -- since
       // there'd be nothing to refresh it and every retry would 401 forever.
       const res = await fetchWithAuthRetry('/reports', { method: 'POST', body: fd });
-      if (!res.ok) continue;
+      if (!res.ok) {
+        // The server actively rejected this (bad data, moderation, rate
+        // limit, ...) rather than the request failing to reach it at all --
+        // record why so a permanently-invalid report doesn't just retry in
+        // silence forever with no way for anyone to tell what's wrong.
+        const body = await res.json().catch(() => null);
+        markSyncFailed(report.localId, (body && body.error) || `HTTP ${res.status}`);
+        continue;
+      }
 
       const data = await res.json();
       const serverId: string = data.id;
