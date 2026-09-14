@@ -4,6 +4,7 @@ import { use, useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { reportsApi } from '@/lib/api';
+import { getRole } from '@/lib/auth';
 import type { Report } from '@/lib/types';
 import { formatDate, statusColors } from '@/lib/utils';
 
@@ -41,6 +42,11 @@ function ReportStatusContent({ id }: { id: string }) {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isReporter, setIsReporter] = useState(false);
+
+  useEffect(() => {
+    setIsReporter(getRole() === 'reporter');
+  }, []);
 
   useEffect(() => {
     reportsApi
@@ -90,6 +96,15 @@ function ReportStatusContent({ id }: { id: string }) {
             <div className="text-2xl mb-1">🎉</div>
             <p className="font-semibold text-[#232E3D]">Report submitted successfully</p>
             <p className="text-sm text-[#55606E] mt-1">Thank you. Your report is now in our queue.</p>
+            {!isReporter && (
+              <p className="text-xs text-[#55606E] mt-3">
+                Want to track this and future reports?{' '}
+                <Link href="/login" className="text-[#006EB5] hover:underline">
+                  Sign in
+                </Link>{' '}
+                to save your submission history.
+              </p>
+            )}
           </div>
         )}
 
