@@ -18,6 +18,7 @@ export default function AdminAccountsPage() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('analyst');
   const [regionGeojson, setRegionGeojson] = useState('');
+  const [label, setLabel] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -26,6 +27,10 @@ export default function AdminAccountsPage() {
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [accountsError, setAccountsError] = useState('');
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [savingLabelId, setSavingLabelId] = useState<string | null>(null);
 
   async function loadAccounts() {
     setAccountsLoading(true);
@@ -51,16 +56,47 @@ export default function AdminAccountsPage() {
     setSuccess('');
     setError('');
     try {
-      await adminApi.provisionUser(email, role, role === 'responder' ? regionGeojson : undefined);
+      await adminApi.provisionUser(
+        email,
+        role,
+        role === 'responder' ? regionGeojson : undefined,
+        label.trim() || undefined
+      );
       setSuccess(`Account provisioned for ${email} with role: ${role}`);
       setEmail('');
       setRegionGeojson('');
+      setLabel('');
       loadAccounts();
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
       setError(apiErr.message || 'Failed to provision account. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  function startEditLabel(account: AdminAccount) {
+    setEditingId(account.id);
+    setEditValue(account.label || '');
+  }
+
+  function cancelEditLabel() {
+    setEditingId(null);
+    setEditValue('');
+  }
+
+  async function saveLabel(id: string) {
+    setSavingLabelId(id);
+    setAccountsError('');
+    try {
+      const updated = await adminApi.updateAccountLabel(id, editValue.trim() || null);
+      setAccounts(prev => prev.map(a => (a.id === id ? updated : a)));
+      setEditingId(null);
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string };
+      setAccountsError(apiErr.message || 'Failed to update label.');
+    } finally {
+      setSavingLabelId(null);
     }
   }
 
@@ -97,6 +133,14 @@ export default function AdminAccountsPage() {
             onChange={e => setEmail(e.target.value)}
             helper="The address this person will sign in with"
             required
+          />
+          <Input
+            label="Label (optional)"
+            type="text"
+            placeholder="e.g. field-lead-mombasa"
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            helper="A name to recognise this account by later — never the email, which is never stored"
           />
           <Select
             label="Role"
@@ -156,7 +200,8 @@ export default function AdminAccountsPage() {
       <div className="mt-8 bg-white rounded-lg border border-[#EDEFF0] p-6">
         <h2 className="font-medium text-[#232E3D] mb-1">Active Accounts</h2>
         <p className="text-xs text-[#55606E] mb-4">
-          Email addresses are hashed and never stored in plaintext, so accounts are listed by ID.
+          Email addresses are hashed and never stored in plaintext. Give an account a label to
+          recognise it later — click a label to edit it.
         </p>
 
         {accountsError && (
@@ -174,6 +219,7 @@ export default function AdminAccountsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#EDEFF0] text-left text-xs text-[#55606E]">
+                  <th className="py-2 pr-4 font-medium">Label</th>
                   <th className="py-2 pr-4 font-medium">Account ID</th>
                   <th className="py-2 pr-4 font-medium">Role</th>
                   <th className="py-2 pr-4 font-medium">Region</th>
@@ -183,6 +229,47 @@ export default function AdminAccountsPage() {
               <tbody>
                 {accounts.map(account => (
                   <tr key={account.id} className="border-b border-[#EDEFF0] last:border-0">
+                    <td className="py-2 pr-4">
+                      {editingId === account.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveLabel(account.id);
+                              if (e.key === 'Escape') cancelEditLabel();
+                            }}
+                            placeholder="e.g. field-lead-mombasa"
+                            className="w-32 rounded border border-[#EDEFF0] px-2 py-1 text-xs text-[#232E3D] focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            loading={savingLabelId === account.id}
+                            onClick={() => saveLabel(account.id)}
+                          >
+                            Save
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={cancelEditLabel}
+                            className="text-xs text-[#55606E] hover:text-[#232E3D]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startEditLabel(account)}
+                          className="text-left text-[#232E3D] hover:text-[#006EB5] hover:underline"
+                        >
+                          {account.label || <span className="text-[#55606E]">Add label</span>}
+                        </button>
+                      )}
+                    </td>
                     <td className="py-2 pr-4 font-mono text-xs text-[#232E3D]">{account.id.slice(0, 8)}…</td>
                     <td className="py-2 pr-4">
                       <Badge className={ROLE_BADGE[account.role] || 'bg-[#EDEFF0] text-[#232E3D]'}>

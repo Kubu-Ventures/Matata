@@ -253,12 +253,27 @@ export const exportApi = {
 };
 
 export const adminApi = {
-  provisionUser: (email: string, role: string, region_geojson?: string) =>
-    request<{ message: string; account: { id: string; role: string } }>('/auth/analyst/register', {
+  provisionUser: (email: string, role: string, region_geojson?: string, label?: string) =>
+    request<{ message: string; account: AdminAccount }>('/auth/analyst/register', {
       method: 'POST',
-      body: JSON.stringify({ email, role, region_geojson: region_geojson || undefined }),
+      body: JSON.stringify({
+        email,
+        role,
+        region_geojson: region_geojson || undefined,
+        label: label || undefined,
+      }),
     }),
   listAccounts: () => request<AdminAccount[]>('/auth/analyst/accounts'),
+  /**
+   * Set or clear an account's operator-facing label. Never the email —
+   * that's never stored — just a display name so admins can recognise
+   * which hashed account is which.
+   */
+  updateAccountLabel: (id: string, label: string | null) =>
+    request<AdminAccount>(`/auth/analyst/accounts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ label }),
+    }),
   deactivateAccount: (id: string) =>
     request<{ message: string }>(`/auth/analyst/accounts/${id}`, { method: 'DELETE' }),
 };
