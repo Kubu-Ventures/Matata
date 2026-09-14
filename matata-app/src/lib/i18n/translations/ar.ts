@@ -7,6 +7,7 @@ export const ar: Record<TranslationKey, string> = {
   'nav.resources': 'الموارد',
 'nav.about': 'عن Matata',
   'nav.analyst_login': 'دخول المحلل',
+  'nav.source_code': 'الكود المصدري',
 'landing.emergency_notice': 'في حال وجود خطر مباشر، يرجى الاتصال أولاً بخدمات الطوارئ المحلية.',
   'landing.badge': 'استجابة أزمات برنامج الأمم المتحدة الإنمائي',
   'landing.hero_title': 'أبلغ عن أضرار الأزمات في مجتمعك',

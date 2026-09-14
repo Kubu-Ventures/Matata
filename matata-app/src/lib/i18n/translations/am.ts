@@ -7,6 +7,7 @@ export const am: Record<TranslationKey, string> = {
   'nav.resources': 'ግብዓቶች',
 'nav.about': 'ስለ Matata',
   'nav.analyst_login': 'የተንታኝ መግቢያ',
+  'nav.source_code': 'ምንጭ ኮድ',
 'landing.emergency_notice': 'ለአስቸኳይ አደጋ፣ እባክዎ በመጀመሪያ የአካባቢዎን የአደጋ ጊዜ አገልግሎቶች ያግኙ።',
   'landing.badge': 'የMatata ቀውስ ምላሽ',
   'landing.hero_title': 'በማህበረሰብዎ የቀውስ ጉዳትን ሪፖርት ያድርጉ',

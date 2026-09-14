@@ -7,6 +7,7 @@ export const ha: Record<TranslationKey, string> = {
   'nav.resources': 'Albarkatu',
 'nav.about': 'Game da Matata',
   'nav.analyst_login': 'Shigar masani',
+  'nav.source_code': 'Lambar tushe',
 'landing.emergency_notice': "Idan akwai haɗari na gaggawa, da farko ku tuntuɓi ma'aikatan gaggawa na yankinku.",
   'landing.badge': 'Amsar Rikici ta Matata',
   'landing.hero_title': 'Rarraba Lalacewar Rikici a Cikin Al\'ummarku',

@@ -7,6 +7,7 @@ export const sw: Record<TranslationKey, string> = {
   'nav.resources': 'Rasilimali',
 'nav.about': 'Kuhusu Matata',
   'nav.analyst_login': 'Kuingia kwa mchambuzi',
+  'nav.source_code': 'Msimbo chanzo',
 'landing.emergency_notice': 'Kwa hatari ya haraka, wasiliana kwanza na huduma za dharura za eneo lako.',
   'landing.badge': 'Majibu ya Msiba wa Matata',
   'landing.hero_title': 'Ripoti Uharibifu wa Msiba Katika Jamii Yako',

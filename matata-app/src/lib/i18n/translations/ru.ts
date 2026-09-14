@@ -7,6 +7,7 @@ export const ru: Record<TranslationKey, string> = {
   'nav.resources': 'Ресурсы',
   'nav.about': 'О Matata',
   'nav.analyst_login': 'Вход для аналитиков',
+  'nav.source_code': 'Исходный код',
   'landing.emergency_notice': 'В случае непосредственной опасности сначала обратитесь в местные экстренные службы.',
   'landing.badge': 'Реагирование ПРООН на кризисы',
   'landing.hero_title': 'Сообщите об ущербе от кризиса в вашем сообществе',
