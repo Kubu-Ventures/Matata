@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { AccountMenu } from '@/components/layout/AccountMenu';
+import QueuedConfirmation from '@/components/report/QueuedConfirmation';
 import type { CrisisType, InfrastructureType, DamageSeverity, ElectricityStatus, HealthServicesStatus } from '@/lib/types';
 
 type FormData = {
@@ -95,6 +96,12 @@ export default function ReportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [showCamera, setShowCamera] = useState(false);
+  // Rendered inline instead of via router.push once a report is queued
+  // offline: a route change needs a network fetch for the destination
+  // page's data, which is exactly what isn't available yet -- that's how
+  // reporters ended up stuck on the PWA's static offline fallback page
+  // (with no way back except a manual refresh) right after submitting.
+  const [queuedRef, setQueuedRef] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -302,7 +309,8 @@ export default function ReportPage() {
       }
       const localId = addToQueue({ fields, ...(photoDataUrl ? { photoDataUrl } : {}) });
       clearDraft();
-      router.push(`/report/queued?ref=${localId}`);
+      setSubmitting(false);
+      setQueuedRef(localId);
       return;
     }
 
@@ -327,6 +335,20 @@ export default function ReportPage() {
   const crisisIcons: Record<CrisisType, string> = {
     flood: '🌊', earthquake: '🏚️', conflict: '⚠️', wildfire: '🔥', other: '❓',
   };
+
+  if (queuedRef) {
+    return (
+      <QueuedConfirmation
+        refId={queuedRef}
+        onSubmitAnother={() => {
+          setQueuedRef(null);
+          setForm(DEFAULT_FORM);
+          setPhoto(null);
+          setStep(0);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
