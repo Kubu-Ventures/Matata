@@ -106,6 +106,9 @@ export default function Page() {
           <p className="footer-label">{t(locale, 'nav.report_now')}</p>
           <Link href="/report">{t(locale, 'nav.report_now')}</Link>
           <Link href="/login">{t(locale, 'nav.sign_in')}</Link>
+          <Link href="/analyst/login" style={{ color: '#7c93ab', fontSize: '.8rem' }}>
+            {t(locale, 'nav.analyst_login')}
+          </Link>
         </div>
       </footer>
     </main>

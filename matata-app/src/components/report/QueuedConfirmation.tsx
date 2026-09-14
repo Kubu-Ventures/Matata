@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
+import { getRole } from '@/lib/auth';
 
 export default function QueuedConfirmation({
   refId,
@@ -17,6 +19,11 @@ export default function QueuedConfirmation({
   onSubmitAnother?: () => void;
 }) {
   const { locale } = useLanguage();
+  const [isReporter, setIsReporter] = useState(false);
+
+  useEffect(() => {
+    setIsReporter(getRole() === 'reporter');
+  }, []);
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-16">
@@ -48,6 +55,15 @@ export default function QueuedConfirmation({
             {t(locale, 'offline.token_warning')}
           </p>
         </div>
+
+        {!isReporter && (
+          <p className="text-xs text-[#55606E]">
+            {t(locale, 'offline.signin_nudge')}{' '}
+            <Link href="/login" className="text-[#006EB5] hover:underline">
+              {t(locale, 'offline.signin_nudge_link')}
+            </Link>
+          </p>
+        )}
 
         <div className="flex flex-col gap-3">
           {onSubmitAnother ? (
