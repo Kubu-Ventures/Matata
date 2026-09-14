@@ -237,6 +237,7 @@ export interface AnalystStreamEvent {
 
 export interface AdminAccount {
   id: string;
+  label: string | null;
   role: string;
   region_geojson: string | null;
   is_active: boolean;
