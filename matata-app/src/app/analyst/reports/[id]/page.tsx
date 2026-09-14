@@ -23,6 +23,8 @@ export default function AnalystReportDetailPage({
   const [overridingSeverity, setOverridingSeverity] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('inaccurate');
   const [error, setError] = useState('');
+  const [photoSrc, setPhotoSrc] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState(false);
 
   // Merge review
   const [mergeActing, setMergeActing] = useState(false);
@@ -39,6 +41,29 @@ export default function AnalystReportDetailPage({
       .catch(() => setError('Could not load report.'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const hasPhoto = report?.photo_url && report.photo_status === 'accepted';
+
+  useEffect(() => {
+    if (!hasPhoto) return;
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    setPhotoError(false);
+    analystApi
+      .getReportPhotoBlob(id)
+      .then(blob => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPhotoSrc(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setPhotoError(true);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [id, hasPhoto]);
 
   async function updateStatus(status: string) {
     setUpdatingStatus(true);
@@ -324,12 +349,25 @@ export default function AnalystReportDetailPage({
           </div>
 
           {/* Photo */}
-          {report.photo_url && report.photo_status === 'accepted' && (
+          {hasPhoto && (
             <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
               <h3 className="font-medium text-[#232E3D] mb-3 text-sm">Photo</h3>
-              <div className="bg-[#EDEFF0] rounded aspect-video flex items-center justify-center">
-                <p className="text-sm text-[#55606E]">Photo: {report.photo_url}</p>
-              </div>
+              {photoError ? (
+                <div className="bg-[#EDEFF0] rounded aspect-video flex items-center justify-center">
+                  <p className="text-sm text-[#55606E]">Could not load photo.</p>
+                </div>
+              ) : photoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element -- authenticated blob: URL, not a static asset Next's image optimizer can serve
+                <img
+                  src={photoSrc}
+                  alt="Submitted damage photo"
+                  className="w-full max-h-[480px] rounded object-contain bg-[#EDEFF0]"
+                />
+              ) : (
+                <div className="bg-[#EDEFF0] rounded aspect-video flex items-center justify-center">
+                  <div className="animate-spin w-5 h-5 border-2 border-[#006EB5] border-t-transparent rounded-full" />
+                </div>
+              )}
             </div>
           )}
 
