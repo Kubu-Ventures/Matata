@@ -85,7 +85,7 @@ export default function MergeReviewPage() {
         <div className="space-y-3">
           {items.map(report => (
             <div key={report.id} className="bg-white rounded-lg border border-[#EDEFF0] p-4">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1.5">
                     <span
