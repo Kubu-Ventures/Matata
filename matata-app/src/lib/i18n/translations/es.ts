@@ -7,6 +7,7 @@ export const es: Record<TranslationKey, string> = {
   'nav.resources': 'Recursos',
 'nav.about': 'Acerca de Matata',
   'nav.analyst_login': 'Acceso de analista',
+  'nav.source_code': 'Código fuente',
 'landing.emergency_notice': 'En caso de peligro inmediato, contacta primero a los servicios de emergencia locales.',
   'landing.badge': 'Respuesta a Crisis del PNUD',
   'landing.hero_title': 'Reporta Daños por Crisis en Tu Comunidad',

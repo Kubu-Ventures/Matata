@@ -7,6 +7,7 @@ export const zh: Record<TranslationKey, string> = {
   'nav.resources': '资源',
   'nav.about': '关于Matata',
   'nav.analyst_login': '分析员登录',
+  'nav.source_code': '源代码',
   'landing.emergency_notice': '如遇紧急危险，请先联系当地紧急服务。',
   'landing.badge': '联合国开发计划署危机响应',
   'landing.hero_title': '上报您社区的危机损失',

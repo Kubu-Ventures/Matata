@@ -7,6 +7,7 @@ export const so: Record<TranslationKey, string> = {
   'nav.resources': 'Kheyraadka',
   'nav.about': 'Ku Saabsan Matata',
   'nav.analyst_login': 'Gelitaanka falanqeeyaha',
+  'nav.source_code': 'Koodhka isha',
   'landing.emergency_notice': 'Haddii khatar degdeg ah jirto, marka hore la xiriir adeegyada degdegga ee deegaankaaga.',
   'landing.badge': 'Jawaabta Xaaladda Degdegga ah ee Matata',
   'landing.hero_title': 'Ka Warbixin Waxyeellada Xaaladda ee Bulshada',

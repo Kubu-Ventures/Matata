@@ -5,6 +5,7 @@ export const en = {
   'nav.resources': 'Resources',
   'nav.about': 'About Matata',
   'nav.analyst_login': 'Analyst login',
+  'nav.source_code': 'Source code',
   'landing.emergency_notice': 'For immediate danger, contact your local emergency services first.',
   'landing.badge': 'Matata Crisis Response',
   'landing.hero_title': 'Report Crisis Damage in Your Community',
