@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { authApi, reportsApi } from '@/lib/api';
+import dynamic from 'next/dynamic';
+import { authApi, gisApi, reportsApi } from '@/lib/api';
 import { saveAuth, getToken } from '@/lib/auth';
 import { addToQueue } from '@/lib/offline';
 import { compressPhoto } from '@/lib/image';
@@ -12,11 +13,24 @@ import { t } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import QueuedConfirmation from '@/components/report/QueuedConfirmation';
-import type { CrisisType, InfrastructureType, DamageSeverity, ElectricityStatus, HealthServicesStatus } from '@/lib/types';
+import type { BuildingCandidate, CrisisType, InfrastructureType, DamageSeverity, ElectricityStatus, HealthServicesStatus } from '@/lib/types';
+
+// Leaflet touches `window` at import time; load the map in the browser only.
+const BuildingPickerMap = dynamic(() => import('@/components/report/BuildingPickerMap'), {
+  ssr: false,
+  loading: () => <div className="w-full h-56 rounded-lg bg-[#F7F8FA] border border-[#EDEFF0]" />,
+});
+
+/** `building_choice` sentinels: "not sure", and "my building isn't on the map". */
+const BUILDING_NONE = 'none';
+const BUILDING_MISSING = 'missing';
 
 type FormData = {
   lat: number | null;
   lng: number | null;
+  gps_accuracy_m: number | null;
+  /** Building id picked from the candidates, BUILDING_NONE, BUILDING_MISSING, or null (not answered). */
+  building_choice: string | null;
   landmark_description: string;
   crisis_type: CrisisType | '';
   infrastructure_type: InfrastructureType | '';
@@ -69,6 +83,8 @@ function clearDraft() {
 const DEFAULT_FORM: FormData = {
   lat: null,
   lng: null,
+  gps_accuracy_m: null,
+  building_choice: null,
   landmark_description: '',
   crisis_type: '',
   infrastructure_type: '',
@@ -88,7 +104,7 @@ export default function ReportPage() {
   // so the user resumes near where they left off instead of at step one.
   const [step, setStep] = useState(() => loadDraft()?.step ?? 0);
   const [isOnline, setIsOnline] = useState(true);
-  const [form, setForm] = useState<FormData>(() => loadDraft()?.form ?? DEFAULT_FORM);
+  const [form, setForm] = useState<FormData>(() => ({ ...DEFAULT_FORM, ...loadDraft()?.form }));
   const [photo, setPhoto] = useState<File | null>(null);
   const [compressingPhoto, setCompressingPhoto] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -96,6 +112,13 @@ export default function ReportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [showCamera, setShowCamera] = useState(false);
+  // Nearby building footprints for the picker; refetched whenever the fix
+  // changes, so they're not kept in the draft.
+  const [candidateResult, setCandidateResult] = useState<{
+    fixKey: string;
+    candidates: BuildingCandidate[];
+    failed: boolean;
+  } | null>(null);
   // Rendered inline instead of via router.push once a report is queued
   // offline: a route change needs a network fetch for the destination
   // page's data, which is exactly what isn't available yet -- that's how
@@ -136,6 +159,37 @@ export default function ReportPage() {
   useEffect(() => {
     saveDraft(step, form);
   }, [step, form]);
+
+  // Fetch the buildings near the GPS fix so the reporter can confirm which
+  // one is damaged. Phone GPS is often off by more than the gap between
+  // buildings, so the nearest footprint alone is frequently the wrong one.
+  // The result is tagged with the fix it belongs to, so "loading" is simply
+  // "no result for the current fix yet" rather than state set in the effect.
+  const { lat, lng, gps_accuracy_m } = form;
+  const fixKey = lat !== null && lng !== null ? `${lat},${lng},${gps_accuracy_m}` : null;
+  useEffect(() => {
+    if (lat === null || lng === null || !isOnline) return;
+    const key = `${lat},${lng},${gps_accuracy_m}`;
+    let cancelled = false;
+    gisApi
+      .matchBuilding(lat, lng, gps_accuracy_m)
+      .then(res => {
+        if (!cancelled) setCandidateResult({ fixKey: key, candidates: res.candidates ?? [], failed: false });
+      })
+      .catch(() => {
+        if (!cancelled) setCandidateResult({ fixKey: key, candidates: [], failed: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lat, lng, gps_accuracy_m, isOnline]);
+  const currentResult = candidateResult && candidateResult.fixKey === fixKey ? candidateResult : null;
+  const candidates = currentResult?.candidates ?? [];
+  const candidatesState: 'loading' | 'ready' | 'error' = !currentResult
+    ? 'loading'
+    : currentResult.failed
+      ? 'error'
+      : 'ready';
 
   // Stop the camera stream on unmount so the light/hardware indicator
   // doesn't stay on if the reporter navigates away mid-capture.
@@ -261,8 +315,14 @@ export default function ReportPage() {
 
     watchId = navigator.geolocation.watchPosition(
       pos => finish(() => {
-        setField('lat', pos.coords.latitude);
-        setField('lng', pos.coords.longitude);
+        setForm(prev => ({
+          ...prev,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          gps_accuracy_m: Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null,
+          // A new fix means a new set of candidates; drop the old pick.
+          building_choice: null,
+        }));
         setLocating(false);
       }),
       err => finish(() => {
@@ -295,6 +355,16 @@ export default function ReportPage() {
       damage_severity: form.damage_severity as DamageSeverity,
       offline_queued_at: new Date().toISOString(),
       ...(form.lat !== null ? { lat: form.lat, lng: form.lng! } : {}),
+      ...(form.lat !== null && form.gps_accuracy_m !== null ? { gps_accuracy_m: form.gps_accuracy_m } : {}),
+      ...(form.lat !== null &&
+      form.building_choice &&
+      form.building_choice !== BUILDING_NONE &&
+      form.building_choice !== BUILDING_MISSING
+        ? { confirmed_building_id: form.building_choice }
+        : {}),
+      // Tells the backend not to snap the report to a neighbouring building;
+      // these reports become a "possible mapping gap" layer for OSM mappers.
+      ...(form.lat !== null && form.building_choice === BUILDING_MISSING ? { building_not_on_map: true } : {}),
       ...(form.landmark_description ? { landmark_description: form.landmark_description } : {}),
       ...(form.electricity_status ? { electricity_status: form.electricity_status } : {}),
       ...(form.health_services_status ? { health_services_status: form.health_services_status } : {}),
@@ -330,6 +400,26 @@ export default function ReportPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function extraBuildingChoice(value: string, labelKey: Parameters<typeof t>[1]) {
+    const selected = form.building_choice === value;
+    return (
+      <button
+        key={value}
+        type="button"
+        role="radio"
+        aria-checked={selected}
+        onClick={() => setField('building_choice', value)}
+        className={`w-full py-3 px-4 rounded-lg border-2 text-left text-sm font-medium transition-colors ${
+          selected
+            ? 'border-[#006EB5] bg-[#B5D5F5]/20 text-[#232E3D]'
+            : 'border-[#EDEFF0] text-[#55606E] hover:border-[#B5D5F5]'
+        }`}
+      >
+        {t(locale, labelKey)}
+      </button>
+    );
   }
 
   const crisisIcons: Record<CrisisType, string> = {
@@ -409,6 +499,67 @@ export default function ReportPage() {
 
             {locating && <p className="text-xs text-[#55606E]">{t(locale, 'report.location_locating_hint')}</p>}
             {locError && <p className="text-sm text-[#EE402D]">{locError}</p>}
+
+            {form.lat !== null && form.lng !== null && (
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-base font-semibold text-[#232E3D]">{t(locale, 'report.building_title')}</h3>
+                  {candidatesState === 'ready' && candidates.length > 0 && (
+                    <p className="text-sm text-[#55606E]">{t(locale, 'report.building_desc')}</p>
+                  )}
+                </div>
+
+                {!isOnline && <p className="text-sm text-[#55606E]">{t(locale, 'report.building_offline')}</p>}
+                {isOnline && candidatesState === 'loading' && (
+                  <p className="text-sm text-[#55606E]">{t(locale, 'report.building_loading')}</p>
+                )}
+                {isOnline && candidatesState === 'error' && (
+                  <p className="text-sm text-[#55606E]">{t(locale, 'report.building_error')}</p>
+                )}
+                {isOnline && candidatesState === 'ready' && candidates.length === 0 && (
+                  <>
+                    <p className="text-sm text-[#55606E]">{t(locale, 'report.building_empty')}</p>
+                    <div role="radiogroup" aria-label={t(locale, 'report.building_title')}>
+                      {extraBuildingChoice(BUILDING_MISSING, 'report.building_missing')}
+                    </div>
+                  </>
+                )}
+
+                {isOnline && candidatesState === 'ready' && candidates.length > 0 && (
+                  <>
+                    <BuildingPickerMap
+                      lat={form.lat}
+                      lng={form.lng}
+                      accuracyM={form.gps_accuracy_m}
+                      candidates={candidates}
+                      selectedId={form.building_choice}
+                      onSelect={id => setField('building_choice', id)}
+                      ariaLabel={t(locale, 'report.building_map_label')}
+                    />
+                    <div className="space-y-2" role="radiogroup" aria-label={t(locale, 'report.building_title')}>
+                      {candidates.map((c, i) => (
+                        <button
+                          key={c.building_id}
+                          type="button"
+                          role="radio"
+                          aria-checked={form.building_choice === c.building_id}
+                          onClick={() => setField('building_choice', c.building_id)}
+                          className={`w-full py-3 px-4 rounded-lg border-2 text-left text-sm font-medium transition-colors ${
+                            form.building_choice === c.building_id
+                              ? 'border-[#006EB5] bg-[#B5D5F5]/20 text-[#232E3D]'
+                              : 'border-[#EDEFF0] text-[#232E3D] hover:border-[#B5D5F5]'
+                          }`}
+                        >
+                          {t(locale, 'report.building_option', { n: i + 1, distance: Math.round(c.distance_m) })}
+                        </button>
+                      ))}
+                      {extraBuildingChoice(BUILDING_MISSING, 'report.building_missing')}
+                      {extraBuildingChoice(BUILDING_NONE, 'report.building_none')}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="relative flex items-center gap-3">
               <div className="flex-1 h-px bg-[#EDEFF0]" />
@@ -600,6 +751,18 @@ export default function ReportPage() {
                     : form.landmark_description || '—'}
                 </span>
               </div>
+              {form.lat !== null && form.building_choice && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#55606E]">{t(locale, 'report.summary_building')}</span>
+                  <span className="text-[#232E3D] font-medium">
+                    {form.building_choice === BUILDING_NONE
+                      ? t(locale, 'report.building_not_sure')
+                      : form.building_choice === BUILDING_MISSING
+                        ? t(locale, 'report.building_missing_summary')
+                        : t(locale, 'report.building_confirmed')}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-[#55606E]">{t(locale, 'report.summary_crisis')}</span>
                 <span className="text-[#232E3D] font-medium">
