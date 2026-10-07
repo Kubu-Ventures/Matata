@@ -62,11 +62,34 @@ export interface ReportSubmitMetadata {
   lng?: number;
   gps_accuracy_m?: number;
   landmark_description?: string;
+  /** Building the reporter picked from the match candidates. The backend
+   *  adopts it only if it lies within the search radius of lat/lng. */
+  confirmed_building_id?: string;
   electricity_status?: ElectricityStatus;
   health_services_status?: HealthServicesStatus;
   most_pressing_needs?: string;
   debris_clearing_needed?: boolean;
   offline_queued_at?: string;
+}
+
+/** One of the mapped buildings nearest a GPS fix (GET /gis/building/match). */
+export interface BuildingCandidate {
+  building_id: string;
+  /** Source dataset id, e.g. "osm:way/123456789". */
+  external_id: string;
+  /** Metres from the fix to the footprint edge; 0 when inside. */
+  distance_m: number;
+  /** GeoJSON Polygon, as a string. */
+  footprint_geojson: string;
+}
+
+export interface BuildingMatchResponse {
+  building_id: string | null;
+  footprint_geojson: string | null;
+  confidence: number;
+  distance_m: number | null;
+  /** Up to three nearest buildings, nearest first. */
+  candidates: BuildingCandidate[];
 }
 
 /** One entry in a building's damage history — every report ever filed against it. */
@@ -80,6 +103,9 @@ export interface TimelineReportItem {
 
 export interface AnalystReportDetail extends ReportListItem {
   footprint_geojson: string | null;
+  /** Building the reporter picked on the form; equals building_id when the
+   *  GIS worker accepted it. */
+  reporter_confirmed_building_id?: string | null;
   notes: AnalystNote[];
   building_timeline?: TimelineReportItem[];
 }

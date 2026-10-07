@@ -547,6 +547,14 @@ export default function AnalystReportDetailPage({
             <div className="bg-white rounded-lg border border-[#EDEFF0] p-5">
               <h3 className="font-medium text-[#232E3D] mb-2 text-sm">Matched Building</h3>
               <p className="font-mono text-xs text-[#55606E] break-all">{report.building_id}</p>
+              {report.reporter_confirmed_building_id === report.building_id && (
+                <p className="mt-2 text-xs font-medium text-green-700">Confirmed by the reporter on the map</p>
+              )}
+              {report.reporter_confirmed_building_id && report.reporter_confirmed_building_id !== report.building_id && (
+                <p className="mt-2 text-xs text-[#55606E]">
+                  The reporter picked a different building, which was too far from their GPS fix to accept.
+                </p>
+              )}
             </div>
           )}
         </div>

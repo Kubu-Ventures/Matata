@@ -12,6 +12,7 @@ import type {
   AIAccuracyResponse,
   StatsSummaryResponse,
   HeatmapFeatureCollection,
+  BuildingMatchResponse,
   ExportFormat,
   ExportJobResponse,
   ExportJobStatusResponse,
@@ -202,6 +203,12 @@ export const analystApi = {
 
   // Feature 3, AI accuracy / active-learning calibration
   getAIAccuracy: () => request<AIAccuracyResponse>('/analyst/ai-accuracy'),
+};
+
+export const gisApi = {
+  /** Best footprint match for a GPS fix, plus up to three nearby candidates. */
+  matchBuilding: (lat: number, lng: number, accuracy_m?: number | null) =>
+    request<BuildingMatchResponse>(`/gis/building/match${toQueryString({ lat, lng, accuracy_m })}`),
 };
 
 export const statsApi = {

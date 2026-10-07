@@ -19,6 +19,8 @@ export interface OfflineReport {
     landmark_description?: string;
     lat?: number;
     lng?: number;
+    gps_accuracy_m?: number;
+    confirmed_building_id?: string;
     electricity_status?: string;
     health_services_status?: string;
     most_pressing_needs?: string;
