@@ -21,6 +21,7 @@ export interface OfflineReport {
     lng?: number;
     gps_accuracy_m?: number;
     confirmed_building_id?: string;
+    building_not_on_map?: boolean;
     electricity_status?: string;
     health_services_status?: string;
     most_pressing_needs?: string;

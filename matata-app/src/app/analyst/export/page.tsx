@@ -27,6 +27,7 @@ export default function ExportPage() {
   const [format, setFormat] = useState<ExportFormat>('geojson');
   const [status, setStatus] = useState<ExportStatus>('idle');
   const [includeFootprints, setIncludeFootprints] = useState(false);
+  const [notOnMapOnly, setNotOnMapOnly] = useState(false);
 
   const [filters, setFilters] = useState({
     crisis_type: '',
@@ -52,6 +53,7 @@ export default function ExportPage() {
       if (filters.time_to) params.time_to = new Date(filters.time_to).toISOString();
       if (filters.min_ai_confidence) params.min_ai_confidence = filters.min_ai_confidence;
       if (format === 'geojson' && includeFootprints) params.include_footprints = 'true';
+      if (notOnMapOnly) params.not_on_map_only = 'true';
 
       const blob = await exportApi.download(format, params, s => setStatus(s));
 
@@ -103,6 +105,21 @@ export default function ExportPage() {
 
         <div className="pt-2 border-t border-[#EDEFF0] space-y-3">
           <p className="text-xs font-medium text-[#55606E] uppercase tracking-wide">Filters</p>
+
+          <label className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={notOnMapOnly}
+              onChange={e => setNotOnMapOnly(e.target.checked)}
+              className="mt-0.5 rounded border-[#EDEFF0] text-[#006EB5] focus:ring-[#006EB5]"
+            />
+            <span className="text-sm text-[#232E3D]">
+              Only reports where the building isn&apos;t on the map
+              <span className="block text-xs text-[#55606E]">
+                A layer of possible mapping gaps to share with OpenStreetMap mappers.
+              </span>
+            </span>
+          </label>
 
           <Select
             label="Status"

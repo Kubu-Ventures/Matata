@@ -65,6 +65,8 @@ export interface ReportSubmitMetadata {
   /** Building the reporter picked from the match candidates. The backend
    *  adopts it only if it lies within the search radius of lat/lng. */
   confirmed_building_id?: string;
+  /** The reporter says their building is not on the map (a mapping gap). */
+  building_not_on_map?: boolean;
   electricity_status?: ElectricityStatus;
   health_services_status?: HealthServicesStatus;
   most_pressing_needs?: string;
@@ -81,6 +83,8 @@ export interface BuildingCandidate {
   distance_m: number;
   /** GeoJSON Polygon, as a string. */
   footprint_geojson: string;
+  /** Probability this is the reporter's building, given the GPS accuracy. */
+  probability?: number;
 }
 
 export interface BuildingMatchResponse {
@@ -106,6 +110,8 @@ export interface AnalystReportDetail extends ReportListItem {
   /** Building the reporter picked on the form; equals building_id when the
    *  GIS worker accepted it. */
   reporter_confirmed_building_id?: string | null;
+  /** The reporter said their building is not on the map. */
+  reporter_building_missing?: boolean;
   notes: AnalystNote[];
   building_timeline?: TimelineReportItem[];
 }

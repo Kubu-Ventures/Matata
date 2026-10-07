@@ -543,6 +543,16 @@ export default function AnalystReportDetailPage({
             </div>
           </div>
 
+          {report.reporter_building_missing && (
+            <div className="bg-white rounded-lg border border-[#FBC412] p-5">
+              <h3 className="font-medium text-[#232E3D] mb-2 text-sm">Possible mapping gap</h3>
+              <p className="text-xs text-[#55606E]">
+                The reporter says their building is not on the map, so this report was not attached to a nearby
+                building. Export with &quot;not on map only&quot; to share these locations with mappers.
+              </p>
+            </div>
+          )}
+
           {report.building_id && (
             <div className="bg-white rounded-lg border border-[#EDEFF0] p-5">
               <h3 className="font-medium text-[#232E3D] mb-2 text-sm">Matched Building</h3>

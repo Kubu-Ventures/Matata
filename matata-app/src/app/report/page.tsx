@@ -21,14 +21,15 @@ const BuildingPickerMap = dynamic(() => import('@/components/report/BuildingPick
   loading: () => <div className="w-full h-56 rounded-lg bg-[#F7F8FA] border border-[#EDEFF0]" />,
 });
 
-/** `building_choice` sentinel for "none of these / not sure". */
+/** `building_choice` sentinels: "not sure", and "my building isn't on the map". */
 const BUILDING_NONE = 'none';
+const BUILDING_MISSING = 'missing';
 
 type FormData = {
   lat: number | null;
   lng: number | null;
   gps_accuracy_m: number | null;
-  /** Building id picked from the candidates, BUILDING_NONE, or null (not answered). */
+  /** Building id picked from the candidates, BUILDING_NONE, BUILDING_MISSING, or null (not answered). */
   building_choice: string | null;
   landmark_description: string;
   crisis_type: CrisisType | '';
@@ -355,9 +356,15 @@ export default function ReportPage() {
       offline_queued_at: new Date().toISOString(),
       ...(form.lat !== null ? { lat: form.lat, lng: form.lng! } : {}),
       ...(form.lat !== null && form.gps_accuracy_m !== null ? { gps_accuracy_m: form.gps_accuracy_m } : {}),
-      ...(form.lat !== null && form.building_choice && form.building_choice !== BUILDING_NONE
+      ...(form.lat !== null &&
+      form.building_choice &&
+      form.building_choice !== BUILDING_NONE &&
+      form.building_choice !== BUILDING_MISSING
         ? { confirmed_building_id: form.building_choice }
         : {}),
+      // Tells the backend not to snap the report to a neighbouring building;
+      // these reports become a "possible mapping gap" layer for OSM mappers.
+      ...(form.lat !== null && form.building_choice === BUILDING_MISSING ? { building_not_on_map: true } : {}),
       ...(form.landmark_description ? { landmark_description: form.landmark_description } : {}),
       ...(form.electricity_status ? { electricity_status: form.electricity_status } : {}),
       ...(form.health_services_status ? { health_services_status: form.health_services_status } : {}),
@@ -393,6 +400,26 @@ export default function ReportPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function extraBuildingChoice(value: string, labelKey: Parameters<typeof t>[1]) {
+    const selected = form.building_choice === value;
+    return (
+      <button
+        key={value}
+        type="button"
+        role="radio"
+        aria-checked={selected}
+        onClick={() => setField('building_choice', value)}
+        className={`w-full py-3 px-4 rounded-lg border-2 text-left text-sm font-medium transition-colors ${
+          selected
+            ? 'border-[#006EB5] bg-[#B5D5F5]/20 text-[#232E3D]'
+            : 'border-[#EDEFF0] text-[#55606E] hover:border-[#B5D5F5]'
+        }`}
+      >
+        {t(locale, labelKey)}
+      </button>
+    );
   }
 
   const crisisIcons: Record<CrisisType, string> = {
@@ -490,7 +517,12 @@ export default function ReportPage() {
                   <p className="text-sm text-[#55606E]">{t(locale, 'report.building_error')}</p>
                 )}
                 {isOnline && candidatesState === 'ready' && candidates.length === 0 && (
-                  <p className="text-sm text-[#55606E]">{t(locale, 'report.building_empty')}</p>
+                  <>
+                    <p className="text-sm text-[#55606E]">{t(locale, 'report.building_empty')}</p>
+                    <div role="radiogroup" aria-label={t(locale, 'report.building_title')}>
+                      {extraBuildingChoice(BUILDING_MISSING, 'report.building_missing')}
+                    </div>
+                  </>
                 )}
 
                 {isOnline && candidatesState === 'ready' && candidates.length > 0 && (
@@ -521,19 +553,8 @@ export default function ReportPage() {
                           {t(locale, 'report.building_option', { n: i + 1, distance: Math.round(c.distance_m) })}
                         </button>
                       ))}
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={form.building_choice === BUILDING_NONE}
-                        onClick={() => setField('building_choice', BUILDING_NONE)}
-                        className={`w-full py-3 px-4 rounded-lg border-2 text-left text-sm font-medium transition-colors ${
-                          form.building_choice === BUILDING_NONE
-                            ? 'border-[#006EB5] bg-[#B5D5F5]/20 text-[#232E3D]'
-                            : 'border-[#EDEFF0] text-[#55606E] hover:border-[#B5D5F5]'
-                        }`}
-                      >
-                        {t(locale, 'report.building_none')}
-                      </button>
+                      {extraBuildingChoice(BUILDING_MISSING, 'report.building_missing')}
+                      {extraBuildingChoice(BUILDING_NONE, 'report.building_none')}
                     </div>
                   </>
                 )}
@@ -736,7 +757,9 @@ export default function ReportPage() {
                   <span className="text-[#232E3D] font-medium">
                     {form.building_choice === BUILDING_NONE
                       ? t(locale, 'report.building_not_sure')
-                      : t(locale, 'report.building_confirmed')}
+                      : form.building_choice === BUILDING_MISSING
+                        ? t(locale, 'report.building_missing_summary')
+                        : t(locale, 'report.building_confirmed')}
                   </span>
                 </div>
               )}
