@@ -54,6 +54,7 @@ export default function HeatmapPage() {
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#EE402D]" /> Destroyed
           </span>
+          <span>Dots: each report. Glow: where reports cluster.</span>
         </div>
       </div>
 
