@@ -34,10 +34,16 @@ export default function HeatmapLayer({ data }: HeatmapLayerProps) {
 
     // `max: 3` matches the backend's severity weight scale (minimal=1,
     // partial=2, destroyed=3) — see get_heatmap()'s _weight_map.
+    //
+    // leaflet.heat divides every point's intensity by 2^(maxZoom - zoom).
+    // With maxZoom 17, a city-wide view (zoom 12) drew each report at 1/32
+    // strength, so scattered reports were all but invisible. maxZoom 1 turns
+    // that fade off; minOpacity keeps a lone minimal report visible.
     const layer = L.heatLayer(points, {
-      radius: 28,
-      blur: 20,
-      maxZoom: 17,
+      radius: 25,
+      blur: 15,
+      maxZoom: 1,
+      minOpacity: 0.35,
       max: 3,
       gradient: {
         0.2: '#006EB5', // low-severity clusters

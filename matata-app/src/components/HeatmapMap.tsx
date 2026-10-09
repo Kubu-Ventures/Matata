@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import HeatmapLayer from './HeatmapLayer';
@@ -35,12 +35,47 @@ function FitToData({ data }: { data: HeatmapFeatureCollection }) {
   return null;
 }
 
+// Backend weight (see get_heatmap()'s _weight_map) → severity and the legend colour.
+const SEVERITY_BY_WEIGHT: Record<number, { label: string; color: string }> = {
+  1: { label: 'Minimal', color: '#006EB5' },
+  2: { label: 'Partial', color: '#FBC412' },
+  3: { label: 'Destroyed', color: '#EE402D' },
+};
+
+/**
+ * One dot per report on top of the heat glow. The glow shows where reports
+ * cluster; the dots make every single report findable, including a lone one
+ * the glow alone would leave faint.
+ */
+function ReportDots({ data }: { data: HeatmapFeatureCollection }) {
+  return (
+    <>
+      {data.features.map((f, i) => {
+        const severity = SEVERITY_BY_WEIGHT[f.properties.weight] ?? SEVERITY_BY_WEIGHT[1];
+        return (
+          <CircleMarker
+            key={i}
+            center={[f.geometry.coordinates[1], f.geometry.coordinates[0]]}
+            radius={6}
+            pathOptions={{ color: '#FFFFFF', weight: 2, fillColor: severity.color, fillOpacity: 1 }}
+          >
+            <Tooltip direction="top" offset={[0, -6]}>
+              {severity.label}
+            </Tooltip>
+          </CircleMarker>
+        );
+      })}
+    </>
+  );
+}
+
 export default function HeatmapMap({ data }: HeatmapMapProps) {
   return (
     <MapContainer
       center={DEFAULT_CENTER}
       zoom={DEFAULT_ZOOM}
       scrollWheelZoom
+      preferCanvas
       className="w-full h-full rounded-lg"
     >
       <TileLayer
@@ -48,6 +83,7 @@ export default function HeatmapMap({ data }: HeatmapMapProps) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <HeatmapLayer data={data} />
+      <ReportDots data={data} />
       <FitToData data={data} />
     </MapContainer>
   );
