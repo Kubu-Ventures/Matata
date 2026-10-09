@@ -17,7 +17,7 @@ interface BuildingPickerMapProps {
 }
 
 /** GeoJSON Polygon string → Leaflet rings ([lat, lng] order). */
-function toRings(footprintGeojson: string): [number, number][][] {
+export function toRings(footprintGeojson: string): [number, number][][] {
   try {
     const geom = JSON.parse(footprintGeojson) as { type: string; coordinates: number[][][] };
     if (geom.type !== 'Polygon') return [];

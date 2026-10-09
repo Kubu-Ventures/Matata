@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { analystApi } from '@/lib/api';
 import type { AnalystReportDetail, DamageSeverity } from '@/lib/types';
@@ -8,6 +9,12 @@ import { formatDate, severityColors, statusColors, priorityColors } from '@/lib/
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
+
+// Leaflet touches `window` at import time; load the map in the browser only.
+const MatchedBuildingMap = dynamic(() => import('@/components/MatchedBuildingMap'), {
+  ssr: false,
+  loading: () => <div className="w-full h-48 rounded-lg bg-[#F7F8FA] border border-[#EDEFF0]" />,
+});
 
 export default function AnalystReportDetailPage({
   params,
@@ -556,10 +563,38 @@ export default function AnalystReportDetailPage({
           {report.building_id && (
             <div className="bg-white rounded-lg border border-[#EDEFF0] p-5">
               <h3 className="font-medium text-[#232E3D] mb-2 text-sm">Matched Building</h3>
-              <p className="font-mono text-xs text-[#55606E] break-all">{report.building_id}</p>
-              {report.reporter_confirmed_building_id === report.building_id && (
-                <p className="mt-2 text-xs font-medium text-green-700">Confirmed by the reporter on the map</p>
+              {report.footprint_geojson && (
+                <div className="mb-3">
+                  <MatchedBuildingMap
+                    footprintGeojson={report.footprint_geojson}
+                    lat={report.lat}
+                    lng={report.lng}
+                    accuracyM={report.gps_accuracy_m}
+                  />
+                  {report.lat !== null && (
+                    <p className="mt-1 text-[11px] text-[#55606E]">
+                      Red dot: the reporter&apos;s GPS fix
+                      {report.gps_accuracy_m !== null && <> (circle: ±{Math.round(report.gps_accuracy_m)} m)</>}
+                    </p>
+                  )}
+                </div>
               )}
+              {report.reporter_confirmed_building_id === report.building_id ? (
+                <p className="text-xs font-medium text-green-700">Confirmed by the reporter on the map</p>
+              ) : (
+                report.footprint_match_confidence != null && (
+                  <p className="text-xs text-[#232E3D]">
+                    Match confidence:{' '}
+                    <span className="font-semibold">{Math.round(report.footprint_match_confidence * 100)}%</span>
+                    <span className="block mt-0.5 text-[11px] text-[#55606E]">
+                      {report.footprint_match_confidence >= 0.8
+                        ? 'Likely the right building.'
+                        : 'Uncertain: a nearby building may be the right one.'}
+                    </span>
+                  </p>
+                )
+              )}
+              <p className="mt-2 font-mono text-[11px] text-[#55606E] break-all">{report.building_id}</p>
               {report.reporter_confirmed_building_id && report.reporter_confirmed_building_id !== report.building_id && (
                 <p className="mt-2 text-xs text-[#55606E]">
                   The reporter picked a different building, which was too far from their GPS fix to accept.
