@@ -107,6 +107,9 @@ export interface TimelineReportItem {
 
 export interface AnalystReportDetail extends ReportListItem {
   footprint_geojson: string | null;
+  /** Probability (0-1) that building_id is the reporter's building; 1 when the
+   *  reporter confirmed it on the map. Null when nothing was matched. */
+  footprint_match_confidence?: number | null;
   /** Building the reporter picked on the form; equals building_id when the
    *  GIS worker accepted it. */
   reporter_confirmed_building_id?: string | null;
