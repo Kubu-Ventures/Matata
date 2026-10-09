@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLoginWithEmail, useIdentityToken } from '@privy-io/react-auth';
+import { useLoginWithEmail, useIdentityToken, usePrivy } from '@privy-io/react-auth';
 import { exchangePrivySession, privyErrorMessage } from '@/lib/privyLogin';
 import { clearPrivySession, isPrivyConfigured } from '@/components/PrivyClientProvider';
 import { clearAuth } from '@/lib/auth';
@@ -49,6 +49,16 @@ export function LoginForm({
   // into a ref so the onComplete closure below always reads the latest
   // value instead of the one captured when useLoginWithEmail was set up.
   const { identityToken } = useIdentityToken();
+  // A Privy session left over from an earlier sign-in (another email, or one
+  // the analyst login turned away) makes loginWithCode try to *link* the new
+  // email to that user, which Privy refuses with cannot_link_more_of_type.
+  // clearPrivySession() can't end it: Privy keeps the session in its own
+  // cookies, so only its logout() does. Mirrored into a ref for onComplete.
+  const { authenticated, logout } = usePrivy();
+  const logoutRef = useRef(logout);
+  useEffect(() => {
+    logoutRef.current = logout;
+  }, [logout]);
   const identityTokenRef = useRef(identityToken);
   useEffect(() => {
     identityTokenRef.current = identityToken;
@@ -68,6 +78,7 @@ export function LoginForm({
         if (analyst && !isElevated) {
           clearAuth();
           clearPrivySession();
+          await logoutRef.current().catch(() => {});
           setError(t('login.analyst_no_access'));
           setFinishing(false);
           return;
@@ -93,6 +104,7 @@ export function LoginForm({
     e.preventDefault();
     setError('');
     try {
+      if (authenticated) await logout();
       await sendCode({ email });
       goToStep('code');
     } catch (err: unknown) {
