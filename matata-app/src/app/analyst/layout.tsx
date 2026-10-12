@@ -3,19 +3,39 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import {
+  ClipboardList,
+  Download,
+  Gauge,
+  GitMerge,
+  LayoutDashboard,
+  LogOut,
+  Map as MapIcon,
+  Menu,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { getToken, getRole, clearAuth } from '@/lib/auth';
 import { authApi, statsApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { clearPrivySession } from '@/components/PrivyClientProvider';
 import { AnalystStreamProvider, useAnalystStreamContext } from '@/contexts/AnalystStreamContext';
 
-const NAV_ITEMS = [
-  { href: '/analyst/overview', label: 'Overview', icon: '🏠' },
-  { href: '/analyst/dashboard', label: 'Reports', icon: '📋' },
-  { href: '/analyst/heatmap', label: 'Heatmap', icon: '🔥' },
-  { href: '/analyst/merge-review', label: 'Merge Review', icon: '🔀', badgeKey: 'pending_duplicate_count' as const },
-  { href: '/analyst/ai-accuracy', label: 'AI Accuracy', icon: '🤖' },
-  { href: '/analyst/export', label: 'Export', icon: '⬇️' },
-  { href: '/analyst/admin', label: 'Accounts', icon: '👥', adminOnly: true },
+const NAV_ITEMS: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  badgeKey?: 'pending_duplicate_count';
+  adminOnly?: boolean;
+}[] = [
+  { href: '/analyst/overview', label: 'Overview', icon: LayoutDashboard },
+  { href: '/analyst/dashboard', label: 'Reports', icon: ClipboardList },
+  { href: '/analyst/heatmap', label: 'Heatmap', icon: MapIcon },
+  { href: '/analyst/merge-review', label: 'Merge Review', icon: GitMerge, badgeKey: 'pending_duplicate_count' },
+  { href: '/analyst/ai-accuracy', label: 'AI Accuracy', icon: Gauge },
+  { href: '/analyst/export', label: 'Export', icon: Download },
+  { href: '/analyst/admin', label: 'Accounts', icon: Users, adminOnly: true },
 ];
 
 const STREAM_STATUS_META: Record<string, { label: string; dot: string }> = {
@@ -25,22 +45,9 @@ const STREAM_STATUS_META: Record<string, { label: string; dot: string }> = {
   offline: { label: 'Offline', dot: 'bg-white/30' },
 };
 
-function Sidebar({
-  role,
-  pathname,
-  onLogout,
-  mobileOpen,
-  onClose,
-}: {
-  role: string | null;
-  pathname: string;
-  onLogout: () => void;
-  mobileOpen: boolean;
-  onClose: () => void;
-}) {
-  const { status } = useAnalystStreamContext();
+/** Pending-merge count for the nav badge, refreshed every minute. */
+function usePendingMerges() {
   const [pendingMerges, setPendingMerges] = useState<number | null>(null);
-  const streamMeta = STREAM_STATUS_META[status];
 
   useEffect(() => {
     let cancelled = false;
@@ -64,88 +71,218 @@ function Sidebar({
     };
   }, []);
 
+  return pendingMerges;
+}
+
+function NavBadge({ count }: { count: number | null }) {
+  if (!count) return null;
   return (
-    <>
+    <span className="inline-flex h-[18px] min-w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-[#FBC412] px-1 text-[10px] font-bold text-[#232E3D]">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
+function StreamStatus({ className }: { className?: string }) {
+  const { status } = useAnalystStreamContext();
+  const streamMeta = STREAM_STATUS_META[status];
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/80',
+        className
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 flex-shrink-0 rounded-full', streamMeta.dot)} />
+      <span className="truncate">{streamMeta.label} feed</span>
+    </span>
+  );
+}
+
+function Shell({
+  role,
+  pathname,
+  onLogout,
+  mobileOpen,
+  onOpen,
+  onClose,
+  children,
+}: {
+  role: string | null;
+  pathname: string;
+  onLogout: () => void;
+  mobileOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const pendingMerges = usePendingMerges();
+  const items = NAV_ITEMS.filter(n => !n.adminOnly || role === 'admin');
+
+  return (
+    <div className="flex min-h-screen flex-col bg-[#F7F8FA]">
+      <header className="sticky top-0 z-30">
+        {/* Brand bar */}
+        <div className="bg-[#232E3D]">
+          <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <button
+              type="button"
+              onClick={onOpen}
+              aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              aria-controls="analyst-sidebar"
+              className="-ml-1.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
+            >
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            </button>
+
+            <Link href="/" className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-[#006EB5]">
+                <span className="text-sm font-bold text-white">M</span>
+              </span>
+              <span className="truncate text-base font-semibold text-white">Matata</span>
+            </Link>
+            <span className="hidden border-l border-white/20 pl-3 text-xs font-medium capitalize text-white/60 sm:inline">
+              {role} portal
+            </span>
+
+            <div className="ml-auto flex flex-shrink-0 items-center gap-2">
+              <StreamStatus />
+              <button
+                type="button"
+                onClick={onLogout}
+                className="hidden items-center gap-2 rounded px-2.5 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white lg:inline-flex"
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                <span>Sign out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section tabs — desktop */}
+        <nav aria-label="Analyst sections" className="hidden border-b border-[#EDEFF0] bg-white lg:block">
+          <div className="mx-auto flex w-full max-w-[1400px] items-stretch gap-1 px-4 sm:px-6 lg:px-8">
+            {items.map(item => {
+              const active = pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    '-mb-px flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors',
+                    active
+                      ? 'border-[#006EB5] text-[#006EB5]'
+                      : 'border-transparent text-[#55606E] hover:border-[#EDEFF0] hover:text-[#232E3D]'
+                  )}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <span className="whitespace-nowrap">{item.label}</span>
+                  {item.badgeKey === 'pending_duplicate_count' && <NavBadge count={pendingMerges} />}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </header>
+
       {/* Backdrop — mobile only, closes the drawer on click */}
       <div
         aria-hidden="true"
         onClick={onClose}
-        className={`fixed inset-0 z-30 bg-black/40 transition-opacity md:hidden ${
+        className={cn(
+          'fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden',
           mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
+        )}
       />
 
+      {/* Drawer — phones and tablets */}
       <aside
         id="analyst-sidebar"
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-shrink-0 transform flex-col bg-[#232E3D] transition-transform duration-200 ease-in-out md:static md:z-auto md:w-56 md:translate-x-0 ${
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] transform flex-col bg-white shadow-xl transition-transform duration-200 ease-in-out lg:hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        )}
       >
-        <div className="flex items-center justify-between gap-2 p-4 border-b border-white/10">
-          <Link href="/" className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 bg-[#006EB5] rounded flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold">M</span>
-            </div>
-            <span className="font-semibold text-white text-sm truncate">Matata</span>
+        <div className="flex h-14 flex-shrink-0 items-center justify-between gap-2 bg-[#232E3D] px-4">
+          <Link href="/" className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-[#006EB5]">
+              <span className="text-sm font-bold text-white">M</span>
+            </span>
+            <span className="truncate text-base font-semibold text-white">Matata</span>
           </Link>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="md:hidden flex-shrink-0 p-1 -m-1 text-white/70 hover:text-white"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-white/70 hover:bg-white/10 hover:text-white"
           >
-            ✕
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-        <p className="px-4 pt-2 text-xs text-white/40 capitalize">{role} portal</p>
+        <p className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-[#55606E]">
+          {role} portal
+        </p>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.filter(n => !n.adminOnly || role === 'admin').map(item => {
-            const badgeCount = item.badgeKey === 'pending_duplicate_count' ? pendingMerges : null;
+        <nav aria-label="Analyst sections" className="flex-1 space-y-1 overflow-y-auto p-3">
+          {items.map(item => {
+            const active = pathname.startsWith(item.href);
+            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`flex items-center justify-between gap-2.5 px-3 py-2 rounded text-sm transition-colors ${
-                  pathname.startsWith(item.href)
-                    ? 'bg-[#006EB5] text-white'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                }`}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex items-center justify-between gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                  active ? 'bg-[#006EB5] text-white' : 'text-[#232E3D] hover:bg-[#F7F8FA]'
+                )}
               >
-                <span className="flex items-center gap-2.5 min-w-0">
-                  <span className="flex-shrink-0">{item.icon}</span>
+                <span className="flex min-w-0 items-center gap-3">
+                  <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                   <span className="truncate">{item.label}</span>
                 </span>
-                {!!badgeCount && (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#FBC412] text-[#232E3D] text-[10px] font-bold flex-shrink-0">
-                    {badgeCount > 99 ? '99+' : badgeCount}
-                  </span>
-                )}
+                {item.badgeKey === 'pending_duplicate_count' && <NavBadge count={pendingMerges} />}
               </Link>
             );
           })}
         </nav>
 
-        <div className="px-3 py-2 border-t border-white/10">
-          <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-white/50">
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${streamMeta.dot}`} />
-            <span className="truncate">{streamMeta.label} feed</span>
-          </div>
-        </div>
-
-        <div className="p-3 border-t border-white/10">
+        <div className="border-t border-[#EDEFF0] p-3">
           <button
             type="button"
             onClick={onLogout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-[#232E3D] transition-colors hover:bg-[#F7F8FA]"
           >
-            <span>🚪</span>
+            <LogOut className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
             <span>Sign out</span>
           </button>
         </div>
       </aside>
-    </>
+
+      <main className="min-w-0 flex-1">{children}</main>
+
+      <footer className="border-t border-[#EDEFF0] bg-white">
+        <div className="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-3 text-xs text-[#55606E] sm:px-6 lg:px-8">
+          <span>Reports come from affected residents. Reporter identities are never stored.</span>
+          <span>
+            Map data ©{' '}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#006EB5] hover:underline"
+            >
+              OpenStreetMap
+            </a>{' '}
+            contributors, ODbL
+          </span>
+        </div>
+      </footer>
+    </div>
   );
 }
 
@@ -220,31 +357,16 @@ export default function AnalystLayout({ children }: { children: React.ReactNode 
 
   return (
     <AnalystStreamProvider>
-      <div className="min-h-screen flex flex-col md:flex-row bg-[#F7F8FA]">
-        <header className="flex md:hidden items-center justify-between gap-2 px-4 py-3 bg-[#232E3D] flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={mobileMenuOpen}
-            aria-controls="analyst-sidebar"
-            className="p-1 -m-1 text-white/80 hover:text-white"
-          >
-            ☰
-          </button>
-          <span className="font-semibold text-white text-sm">Matata</span>
-          <span className="w-6" aria-hidden="true" />
-        </header>
-
-        <Sidebar
-          role={role}
-          pathname={pathname}
-          onLogout={handleLogout}
-          mobileOpen={mobileMenuOpen}
-          onClose={() => setMobileMenuOpen(false)}
-        />
-        <main className="flex-1 min-w-0 overflow-auto">{children}</main>
-      </div>
+      <Shell
+        role={role}
+        pathname={pathname}
+        onLogout={handleLogout}
+        mobileOpen={mobileMenuOpen}
+        onOpen={() => setMobileMenuOpen(true)}
+        onClose={() => setMobileMenuOpen(false)}
+      >
+        {children}
+      </Shell>
     </AnalystStreamProvider>
   );
 }

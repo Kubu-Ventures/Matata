@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { MapPin } from 'lucide-react';
 import { statsApi } from '@/lib/api';
 import type { HeatmapFeatureCollection } from '@/lib/types';
+import { severityHex, severityLabels } from '@/lib/utils';
+import { Alert, EmptyState, PageContainer, PageHeader, Spinner } from '@/components/analyst/ui';
 
 // Leaflet touches `window` at import time, which breaks Next.js SSR/prerender
 // even inside a 'use client' file — the component tree still renders once on
@@ -13,7 +16,7 @@ const HeatmapMap = dynamic(() => import('@/components/HeatmapMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-[#F7F8FA] rounded-lg">
-      <div className="animate-spin w-6 h-6 border-2 border-[#006EB5] border-t-transparent rounded-full" />
+      <Spinner />
     </div>
   ),
 });
@@ -34,49 +37,44 @@ export default function HeatmapPage() {
   const pointCount = data?.features.length ?? 0;
 
   return (
-    <div className="p-6 h-[100dvh] flex flex-col max-w-6xl">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 flex-shrink-0">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold text-[#232E3D]">Damage Heatmap</h1>
-          <p className="text-sm text-[#55606E] mt-0.5">
+    <PageContainer className="flex h-[calc(100dvh-3.5rem)] min-h-[520px] flex-col lg:h-[calc(100dvh-6.25rem)]">
+      <PageHeader
+        className="flex-shrink-0"
+        title="Damage Heatmap"
+        meta={
+          <span>
             {loading ? 'Loading…' : `${pointCount.toLocaleString()} reports plotted, weighted by severity`}
-          </p>
+          </span>
+        }
+      />
+
+      {error && <Alert className="mb-4 flex-shrink-0">{error}</Alert>}
+
+      <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#EDEFF0] bg-white">
+        <div className="min-h-0 flex-1">
+          {loading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Spinner />
+            </div>
+          ) : !data || pointCount === 0 ? (
+            <EmptyState icon={MapPin} title="No geolocated reports to display yet." className="h-full" />
+          ) : (
+            <HeatmapMap data={data} />
+          )}
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#55606E]">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#006EB5]" /> Minimal
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#FBC412]" /> Partial
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#EE402D]" /> Destroyed
-          </span>
-          <span>Dots: each report. Glow: where reports cluster.</span>
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#EDEFF0] px-4 py-2.5 text-xs text-[#55606E]">
+          <span className="font-medium uppercase tracking-wide">Severity</span>
+          {(['minimal', 'partial', 'destroyed'] as const).map(sev => (
+            <span key={sev} className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: severityHex[sev] }} />
+              {severityLabels[sev]}
+            </span>
+          ))}
+          <span className="sm:ml-auto">Dots: each report. Glow: where reports cluster.</span>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 flex-shrink-0">
-          <p className="text-sm text-[#EE402D]">{error}</p>
-        </div>
-      )}
-
-      <div className="flex-1 bg-white rounded-lg border border-[#EDEFF0] p-2 min-h-0">
-        {loading ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="animate-spin w-6 h-6 border-2 border-[#006EB5] border-t-transparent rounded-full" />
-          </div>
-        ) : !data || pointCount === 0 ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <p className="text-sm text-[#55606E]">No geolocated reports to display yet.</p>
-          </div>
-        ) : (
-          <HeatmapMap data={data} />
-        )}
-      </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -62,6 +62,13 @@ export const severityColors: Record<string, string> = {
   destroyed: 'bg-red-100 text-red-800',
 };
 
+/** Solid severity colours for maps and charts — the same three the heatmap legend uses. */
+export const severityHex: Record<string, string> = {
+  minimal: '#006EB5',
+  partial: '#FBC412',
+  destroyed: '#EE402D',
+};
+
 export const statusColors: Record<string, string> = {
   pending: 'bg-gray-100 text-gray-800',
   verified: 'bg-green-100 text-green-800',

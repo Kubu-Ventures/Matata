@@ -1,10 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ShieldAlert, Users } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Badge } from '@/components/ui/Badge';
+import {
+  Alert,
+  Chip,
+  EmptyState,
+  LoadingBlock,
+  PageContainer,
+  PageHeader,
+  Panel,
+  SelectField,
+  fieldInputClass,
+  fieldLabelClass,
+} from '@/components/analyst/ui';
 import { adminApi } from '@/lib/api';
 import type { AdminAccount } from '@/lib/types';
 
@@ -118,168 +129,166 @@ export default function AdminAccountsPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl">
-      <h1 className="text-xl font-bold text-[#232E3D] mb-2">Account Management</h1>
-      <p className="text-sm text-[#55606E] mb-6">Provision analyst and responder accounts.</p>
+    <PageContainer>
+      <PageHeader
+        title="Account Management"
+        description="Provision analyst and responder accounts."
+        meta={!accountsLoading && <span>{accounts.length} active account{accounts.length === 1 ? '' : 's'}</span>}
+      />
 
-      <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
-        <h2 className="font-medium text-[#232E3D] mb-4">Provision New Account</h2>
-        <form onSubmit={handleProvision} className="space-y-4">
-          <Input
-            label="Email address"
-            type="email"
-            placeholder="name@organisation.org"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            helper="The address this person will sign in with"
-            required
-          />
-          <Input
-            label="Label (optional)"
-            type="text"
-            placeholder="e.g. field-lead-mombasa"
-            value={label}
-            onChange={e => setLabel(e.target.value)}
-            helper="A name to recognise this account by later — never the email, which is never stored"
-          />
-          <Select
-            label="Role"
-            options={[
-              { value: 'analyst', label: 'Analyst — full triage access' },
-              { value: 'responder', label: 'Responder — read-only regional access' },
-              { value: 'admin', label: 'Admin — full administrative access' },
-            ]}
-            value={role}
-            onChange={e => setRole(e.target.value)}
-          />
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
+        <Panel
+          className="lg:col-span-2"
+          title="Active Accounts"
+          description={
+            <>
+              Email addresses are hashed and never stored in plaintext. Give an account a label to
+              recognise it later — click a label to edit it.
+            </>
+          }
+          bodyClassName="p-0 sm:p-0"
+        >
+          {accountsError && <Alert className="m-4">{accountsError}</Alert>}
 
-          {role === 'responder' && (
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-[#232E3D]">
-                Region (GeoJSON)
-              </label>
-              <textarea
-                value={regionGeojson}
-                onChange={e => setRegionGeojson(e.target.value)}
-                placeholder='{"type": "Polygon", "coordinates": [...]}'
-                rows={4}
-                required
-                className="block w-full rounded border px-3 py-2 text-sm text-[#232E3D] placeholder:text-[#55606E] font-mono transition-colors border-[#EDEFF0] bg-white focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
-              />
-              <p className="text-xs text-[#55606E]">
-                Scopes this responder to reports within the given area. Required for the responder role.
-              </p>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-3">
-              <p className="text-sm text-[#EE402D]">{error}</p>
-            </div>
-          )}
-          {success && (
-            <div className="bg-green-50 border border-green-200 rounded p-3">
-              <p className="text-sm text-green-800">✓ {success}</p>
-            </div>
-          )}
-
-          <Button type="submit" loading={loading} className="w-full" size="lg">
-            Provision Account
-          </Button>
-        </form>
-      </div>
-
-      <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-        <p className="text-xs text-yellow-800">
-          <strong>Security notice:</strong> The provisioned user will be able to log in immediately
-          via the email OTP flow using this address. Ensure you provision only trusted
-          individuals.
-        </p>
-      </div>
-
-      <div className="mt-8 bg-white rounded-lg border border-[#EDEFF0] p-6">
-        <h2 className="font-medium text-[#232E3D] mb-1">Active Accounts</h2>
-        <p className="text-xs text-[#55606E] mb-4">
-          Email addresses are hashed and never stored in plaintext. Give an account a label to
-          recognise it later — click a label to edit it.
-        </p>
-
-        {accountsError && (
-          <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
-            <p className="text-sm text-[#EE402D]">{accountsError}</p>
-          </div>
-        )}
-
-        {accountsLoading ? (
-          <p className="text-sm text-[#55606E]">Loading accounts…</p>
-        ) : accounts.length === 0 ? (
-          <p className="text-sm text-[#55606E]">No active accounts provisioned yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#EDEFF0] text-left text-xs text-[#55606E]">
-                  <th className="py-2 pr-4 font-medium">Label</th>
-                  <th className="py-2 pr-4 font-medium">Account ID</th>
-                  <th className="py-2 pr-4 font-medium">Role</th>
-                  <th className="py-2 pr-4 font-medium">Region</th>
-                  <th className="py-2 pr-4 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {accounts.map(account => (
-                  <tr key={account.id} className="border-b border-[#EDEFF0] last:border-0">
-                    <td className="py-2 pr-4">
-                      {editingId === account.id ? (
-                        <div className="flex items-center gap-1">
-                          <input
-                            autoFocus
-                            type="text"
-                            value={editValue}
-                            onChange={e => setEditValue(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') saveLabel(account.id);
-                              if (e.key === 'Escape') cancelEditLabel();
-                            }}
-                            placeholder="e.g. field-lead-mombasa"
-                            className="w-32 rounded border border-[#EDEFF0] px-2 py-1 text-xs text-[#232E3D] focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            loading={savingLabelId === account.id}
-                            onClick={() => saveLabel(account.id)}
-                          >
-                            Save
-                          </Button>
+          {accountsLoading ? (
+            <LoadingBlock className="py-10" />
+          ) : accounts.length === 0 ? (
+            <EmptyState icon={Users} title="No active accounts provisioned yet." />
+          ) : (
+            <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#EDEFF0] bg-[#F7F8FA] text-left text-xs uppercase tracking-wide text-[#55606E]">
+                    <th className="px-4 py-2.5 font-medium sm:px-5">Label</th>
+                    <th className="px-4 py-2.5 font-medium">Account ID</th>
+                    <th className="px-4 py-2.5 font-medium">Role</th>
+                    <th className="px-4 py-2.5 font-medium">Region</th>
+                    <th className="px-4 py-2.5 font-medium sm:px-5"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accounts.map(account => (
+                    <tr key={account.id} className="border-b border-[#EDEFF0] last:border-0">
+                      <td className="px-4 py-2.5 sm:px-5">
+                        {editingId === account.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') saveLabel(account.id);
+                                if (e.key === 'Escape') cancelEditLabel();
+                              }}
+                              placeholder="e.g. field-lead-mombasa"
+                              className={`${fieldInputClass} h-8 w-40 text-xs`}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              loading={savingLabelId === account.id}
+                              onClick={() => saveLabel(account.id)}
+                            >
+                              Save
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={cancelEditLabel}
+                              className="text-xs text-[#55606E] hover:text-[#232E3D]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             type="button"
-                            onClick={cancelEditLabel}
-                            className="text-xs text-[#55606E] hover:text-[#232E3D]"
+                            onClick={() => startEditLabel(account)}
+                            className="text-left font-medium text-[#232E3D] hover:text-[#006EB5] hover:underline"
                           >
-                            Cancel
+                            {account.label || <span className="font-normal text-[#55606E]">Add label</span>}
                           </button>
-                        </div>
-                      ) : (
-                        <button
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-[#232E3D]">{account.id.slice(0, 8)}…</td>
+                      <td className="px-4 py-2.5">
+                        <Chip className={ROLE_BADGE[account.role] || 'bg-[#EDEFF0] text-[#232E3D]'}>
+                          {account.role}
+                        </Chip>
+                      </td>
+                      <td className="px-4 py-2.5 text-[#55606E]">
+                        {account.region_geojson ? 'Scoped' : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right sm:px-5">
+                        <Button
                           type="button"
-                          onClick={() => startEditLabel(account)}
-                          className="text-left text-[#232E3D] hover:text-[#006EB5] hover:underline"
+                          variant="danger"
+                          size="sm"
+                          loading={deactivatingId === account.id}
+                          onClick={() => handleDeactivate(account.id)}
                         >
-                          {account.label || <span className="text-[#55606E]">Add label</span>}
-                        </button>
-                      )}
-                    </td>
-                    <td className="py-2 pr-4 font-mono text-xs text-[#232E3D]">{account.id.slice(0, 8)}…</td>
-                    <td className="py-2 pr-4">
-                      <Badge className={ROLE_BADGE[account.role] || 'bg-[#EDEFF0] text-[#232E3D]'}>
-                        {account.role}
-                      </Badge>
-                    </td>
-                    <td className="py-2 pr-4 text-[#55606E]">
-                      {account.region_geojson ? 'Scoped' : '—'}
-                    </td>
-                    <td className="py-2 pr-4 text-right">
+                          Deactivate
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+              {/* Cards — phones */}
+              <ul className="divide-y divide-[#EDEFF0] md:hidden">
+                {accounts.map(account => (
+                  <li key={account.id} className="space-y-2.5 px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        {editingId === account.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') saveLabel(account.id);
+                                if (e.key === 'Escape') cancelEditLabel();
+                              }}
+                              placeholder="e.g. field-lead-mombasa"
+                              className={`${fieldInputClass} h-8 w-40 text-xs`}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              loading={savingLabelId === account.id}
+                              onClick={() => saveLabel(account.id)}
+                            >
+                              Save
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={cancelEditLabel}
+                              className="text-xs text-[#55606E] hover:text-[#232E3D]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => startEditLabel(account)}
+                            className="text-left font-medium text-[#232E3D] hover:text-[#006EB5] hover:underline"
+                          >
+                            {account.label || <span className="font-normal text-[#55606E]">Add label</span>}
+                          </button>
+                        )}
+                        <p className="mt-0.5 font-mono text-xs text-[#55606E]">{account.id.slice(0, 8)}…</p>
+                      </div>
+                      <Chip className={ROLE_BADGE[account.role] || 'bg-[#EDEFF0] text-[#232E3D]'}>{account.role}</Chip>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs text-[#55606E]">
+                        Region: {account.region_geojson ? 'Scoped' : '—'}
+                      </span>
                       <Button
                         type="button"
                         variant="danger"
@@ -289,14 +298,83 @@ export default function AdminAccountsPage() {
                       >
                         Deactivate
                       </Button>
-                    </td>
-                  </tr>
+                    </div>
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+            </>
+          )}
+        </Panel>
+
+        <div className="space-y-5">
+          <Panel title="Provision New Account">
+            <form onSubmit={handleProvision} className="space-y-4">
+              <Input
+                label="Email address"
+                type="email"
+                placeholder="name@organisation.org"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                helper="The address this person will sign in with"
+                className="h-9 min-h-0"
+                required
+              />
+              <Input
+                label="Label (optional)"
+                type="text"
+                placeholder="e.g. field-lead-mombasa"
+                value={label}
+                onChange={e => setLabel(e.target.value)}
+                helper="A name to recognise this account by later — never the email, which is never stored"
+                className="h-9 min-h-0"
+              />
+              <SelectField
+                label="Role"
+                options={[
+                  { value: 'analyst', label: 'Analyst — full triage access' },
+                  { value: 'responder', label: 'Responder — read-only regional access' },
+                  { value: 'admin', label: 'Admin — full administrative access' },
+                ]}
+                value={role}
+                onChange={e => setRole(e.target.value)}
+              />
+
+              {role === 'responder' && (
+                <label className="block font-normal">
+                  <span className={fieldLabelClass}>Region (GeoJSON)</span>
+                  <textarea
+                    value={regionGeojson}
+                    onChange={e => setRegionGeojson(e.target.value)}
+                    placeholder='{"type": "Polygon", "coordinates": [...]}'
+                    rows={4}
+                    required
+                    className="block w-full rounded border border-[#EDEFF0] bg-white px-2.5 py-2 font-mono text-sm text-[#232E3D] placeholder:text-[#55606E] focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
+                  />
+                  <span className="mt-1 block text-xs text-[#55606E]">
+                    Scopes this responder to reports within the given area. Required for the responder role.
+                  </span>
+                </label>
+              )}
+
+              {error && <Alert>{error}</Alert>}
+              {success && <Alert tone="success">✓ {success}</Alert>}
+
+              <Button type="submit" loading={loading} className="w-full" size="md">
+                Provision Account
+              </Button>
+            </form>
+          </Panel>
+
+          <div className="flex gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+            <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-800" aria-hidden="true" />
+            <p className="text-xs leading-relaxed text-yellow-800">
+              <strong>Security notice:</strong> The provisioned user will be able to log in immediately
+              via the email OTP flow using this address. Ensure you provision only trusted
+              individuals.
+            </p>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
