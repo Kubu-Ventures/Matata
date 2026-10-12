@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { CircleCheck } from 'lucide-react';
 import { analystApi } from '@/lib/api';
 import type { ReportListItem } from '@/lib/types';
 import { formatDate, severityColors, crisisLabels } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { Alert, Chip, EmptyState, LoadingBlock, PageContainer, PageHeader } from '@/components/analyst/ui';
 
 export default function MergeReviewPage() {
   const [items, setItems] = useState<ReportListItem[]>([]);
@@ -59,79 +61,76 @@ export default function MergeReviewPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl">
-      <h1 className="text-xl font-bold text-[#232E3D] mb-1">Merge Review Queue</h1>
-      <p className="text-sm text-[#55606E] mb-6">
-        These reports scored ≥ 0.9 against an existing report on the duplicate-detection composite
-        (building, GPS proximity, image similarity, and category agreement). Confirm to merge, or
-        reject to return the report to normal review as an independent incident.
-      </p>
+    <PageContainer narrow>
+      <PageHeader
+        title="Merge Review Queue"
+        description={
+          <>
+            These reports scored ≥ 0.9 against an existing report on the duplicate-detection composite
+            (building, GPS proximity, image similarity, and category agreement). Confirm to merge, or
+            reject to return the report to normal review as an independent incident.
+          </>
+        }
+        meta={!loading && <span>{items.length} awaiting review</span>}
+      />
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
-          <p className="text-sm text-[#EE402D]">{error}</p>
-        </div>
-      )}
+      {error && <Alert className="mb-4">{error}</Alert>}
 
       {loading ? (
-        <div className="py-16 text-center">
-          <div className="inline-block animate-spin w-6 h-6 border-2 border-[#006EB5] border-t-transparent rounded-full" />
-        </div>
+        <LoadingBlock />
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-lg border border-[#EDEFF0] py-16 text-center">
-          <p className="text-sm text-[#55606E]">No pending merges. The queue is clear.</p>
+        <div className="rounded-lg border border-[#EDEFF0] bg-white">
+          <EmptyState icon={CircleCheck} title="No pending merges. The queue is clear." />
         </div>
       ) : (
-        <div className="space-y-3">
+        <ul className="divide-y divide-[#EDEFF0] overflow-hidden rounded-lg border border-[#EDEFF0] bg-white">
           {items.map(report => (
-            <div key={report.id} className="bg-white rounded-lg border border-[#EDEFF0] p-4">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                    <span
-                      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[report.damage_severity]}`}
-                    >
-                      {report.damage_severity}
-                    </span>
-                    <span className="text-xs text-[#55606E] capitalize">
-                      {crisisLabels[report.crisis_type] || report.crisis_type} ·{' '}
-                      {report.infrastructure_type}
-                    </span>
-                  </div>
+            <li key={report.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 p-4 sm:px-5">
+              <div className="min-w-0">
+                <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                  <Chip className={severityColors[report.damage_severity]}>{report.damage_severity}</Chip>
+                  <span className="text-sm font-medium capitalize text-[#232E3D]">
+                    {crisisLabels[report.crisis_type] || report.crisis_type} ·{' '}
+                    {report.infrastructure_type}
+                  </span>
+                </div>
+                <p className="text-xs text-[#55606E]">
                   <Link
                     href={`/analyst/reports/${report.id}`}
-                    className="text-sm font-mono text-[#006EB5] hover:underline"
+                    className="font-mono font-medium text-[#006EB5] hover:underline"
                   >
                     {report.id.slice(0, 8).toUpperCase()}
                   </Link>
-                  <p className="text-xs text-[#55606E] mt-1">Submitted {formatDate(report.created_at)}</p>
-                </div>
-
-                <div className="flex gap-2 flex-shrink-0">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={actingId === report.id}
-                    loading={actingId === report.id}
-                    onClick={() => handleReject(report.id)}
-                  >
-                    Reject — keep separate
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    disabled={actingId === report.id}
-                    loading={actingId === report.id}
-                    onClick={() => handleConfirm(report.id)}
-                  >
-                    Confirm merge
-                  </Button>
-                </div>
+                  {' · '}Submitted {formatDate(report.created_at)}
+                </p>
               </div>
-            </div>
+
+              <div className="flex w-full flex-shrink-0 gap-2 sm:w-auto">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="flex-1 sm:flex-none"
+                  disabled={actingId === report.id}
+                  loading={actingId === report.id}
+                  onClick={() => handleReject(report.id)}
+                >
+                  Reject — keep separate
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="flex-1 sm:flex-none"
+                  disabled={actingId === report.id}
+                  loading={actingId === report.id}
+                  onClick={() => handleConfirm(report.id)}
+                >
+                  Confirm merge
+                </Button>
+              </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </PageContainer>
   );
 }

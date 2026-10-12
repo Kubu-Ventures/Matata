@@ -1,10 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import { Download, FileSpreadsheet, Globe, Layers, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
 import { exportApi } from '@/lib/api';
 import type { ExportFormat } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import {
+  Alert,
+  PageContainer,
+  PageHeader,
+  Panel,
+  SelectField,
+  Spinner,
+  checkboxClass,
+  fieldInputClass,
+  fieldLabelClass,
+} from '@/components/analyst/ui';
 
 type ExportStatus = 'idle' | 'requesting' | 'processing' | 'downloading' | 'done' | 'error';
 
@@ -22,6 +34,12 @@ const FILE_EXT: Record<ExportFormat, string> = {
   csv: 'csv',
   shapefile: 'zip',
 };
+
+const FORMATS: { value: ExportFormat; name: string; hint: string; icon: LucideIcon }[] = [
+  { value: 'geojson', name: 'GeoJSON', hint: 'for GIS tools', icon: Globe },
+  { value: 'csv', name: 'CSV', hint: 'for spreadsheets', icon: FileSpreadsheet },
+  { value: 'shapefile', name: 'Shapefile', hint: 'for ArcGIS/QGIS', icon: Layers },
+];
 
 export default function ExportPage() {
   const [format, setFormat] = useState<ExportFormat>('geojson');
@@ -72,150 +90,170 @@ export default function ExportPage() {
   const isBusy = status === 'requesting' || status === 'processing' || status === 'downloading';
 
   return (
-    <div className="p-6 max-w-xl">
-      <h1 className="text-xl font-bold text-[#232E3D] mb-2">Export Data</h1>
-      <p className="text-sm text-[#55606E] mb-6">
-        Download report data for operational planning. Exports over 10,000 records are processed
-        asynchronously on the server — this page will wait and download automatically once ready.
-      </p>
+    <PageContainer narrow>
+      <PageHeader
+        title="Export Data"
+        description={
+          <>
+            Download report data for operational planning. Exports over 10,000 records are processed
+            asynchronously on the server — this page will wait and download automatically once ready.
+          </>
+        }
+      />
 
-      <div className="bg-white rounded-lg border border-[#EDEFF0] p-6 space-y-4">
-        <Select
-          label="Export format"
-          options={[
-            { value: 'geojson', label: 'GeoJSON — for GIS tools' },
-            { value: 'csv', label: 'CSV — for spreadsheets' },
-            { value: 'shapefile', label: 'Shapefile — for ArcGIS/QGIS' },
-          ]}
-          value={format}
-          onChange={e => setFormat(e.target.value as ExportFormat)}
-        />
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <Panel title="1. Format">
+            <div role="radiogroup" aria-label="Export format" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {FORMATS.map(f => {
+                const selected = format === f.value;
+                const Icon = f.icon;
+                return (
+                  <button
+                    key={f.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setFormat(f.value)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-md border px-3 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[#006EB5] focus:ring-offset-1',
+                      selected
+                        ? 'border-[#006EB5] bg-[#006EB5]/5'
+                        : 'border-[#EDEFF0] bg-white hover:bg-[#F7F8FA]'
+                    )}
+                  >
+                    <Icon
+                      className={cn('h-5 w-5 flex-shrink-0', selected ? 'text-[#006EB5]' : 'text-[#55606E]')}
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-[#232E3D]">{f.name}</span>
+                      <span className="block text-xs text-[#55606E]">{f.hint}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-        {format === 'geojson' && (
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={includeFootprints}
-              onChange={e => setIncludeFootprints(e.target.checked)}
-              className="rounded border-[#EDEFF0] text-[#006EB5] focus:ring-[#006EB5]"
-            />
-            <span className="text-sm text-[#232E3D]">Include building footprint polygons</span>
-          </label>
-        )}
+            {format === 'geojson' && (
+              <label className="mt-4 flex items-center gap-2 font-normal">
+                <input
+                  type="checkbox"
+                  checked={includeFootprints}
+                  onChange={e => setIncludeFootprints(e.target.checked)}
+                  className={checkboxClass}
+                />
+                <span className="text-sm text-[#232E3D]">Include building footprint polygons</span>
+              </label>
+            )}
+          </Panel>
 
-        <div className="pt-2 border-t border-[#EDEFF0] space-y-3">
-          <p className="text-xs font-medium text-[#55606E] uppercase tracking-wide">Filters</p>
+          <Panel title="2. Filters">
+            <div className="space-y-4">
+              <label className="flex items-start gap-2 font-normal">
+                <input
+                  type="checkbox"
+                  checked={notOnMapOnly}
+                  onChange={e => setNotOnMapOnly(e.target.checked)}
+                  className={cn(checkboxClass, 'mt-0.5')}
+                />
+                <span className="text-sm text-[#232E3D]">
+                  Only reports where the building isn&apos;t on the map
+                  <span className="block text-xs text-[#55606E]">
+                    A layer of possible mapping gaps to share with OpenStreetMap mappers.
+                  </span>
+                </span>
+              </label>
 
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              checked={notOnMapOnly}
-              onChange={e => setNotOnMapOnly(e.target.checked)}
-              className="mt-0.5 rounded border-[#EDEFF0] text-[#006EB5] focus:ring-[#006EB5]"
-            />
-            <span className="text-sm text-[#232E3D]">
-              Only reports where the building isn&apos;t on the map
-              <span className="block text-xs text-[#55606E]">
-                A layer of possible mapping gaps to share with OpenStreetMap mappers.
-              </span>
-            </span>
-          </label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <SelectField
+                  label="Status"
+                  options={[
+                    { value: 'verified', label: 'Verified only' },
+                    { value: 'pending', label: 'Pending only' },
+                    { value: 'verified,pending', label: 'Verified + Pending' },
+                    { value: '', label: 'All statuses' },
+                  ]}
+                  value={filters.status}
+                  onChange={e => setFilter('status', e.target.value)}
+                />
+                <SelectField
+                  label="Crisis type"
+                  options={[
+                    { value: 'flood', label: 'Flood' },
+                    { value: 'earthquake', label: 'Earthquake' },
+                    { value: 'conflict', label: 'Conflict' },
+                    { value: 'wildfire', label: 'Wildfire' },
+                    { value: 'other', label: 'Other' },
+                  ]}
+                  placeholder="All crises"
+                  value={filters.crisis_type}
+                  onChange={e => setFilter('crisis_type', e.target.value)}
+                />
+                <SelectField
+                  label="Severity"
+                  options={[
+                    { value: 'minimal', label: 'Minimal' },
+                    { value: 'partial', label: 'Partial' },
+                    { value: 'destroyed', label: 'Destroyed' },
+                  ]}
+                  placeholder="All severities"
+                  value={filters.damage_severity}
+                  onChange={e => setFilter('damage_severity', e.target.value)}
+                />
+              </div>
 
-          <Select
-            label="Status"
-            options={[
-              { value: 'verified', label: 'Verified only' },
-              { value: 'pending', label: 'Pending only' },
-              { value: 'verified,pending', label: 'Verified + Pending' },
-              { value: '', label: 'All statuses' },
-            ]}
-            value={filters.status}
-            onChange={e => setFilter('status', e.target.value)}
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select
-              label="Crisis type"
-              options={[
-                { value: 'flood', label: 'Flood' },
-                { value: 'earthquake', label: 'Earthquake' },
-                { value: 'conflict', label: 'Conflict' },
-                { value: 'wildfire', label: 'Wildfire' },
-                { value: 'other', label: 'Other' },
-              ]}
-              placeholder="All crises"
-              value={filters.crisis_type}
-              onChange={e => setFilter('crisis_type', e.target.value)}
-            />
-            <Select
-              label="Severity"
-              options={[
-                { value: 'minimal', label: 'Minimal' },
-                { value: 'partial', label: 'Partial' },
-                { value: 'destroyed', label: 'Destroyed' },
-              ]}
-              placeholder="All severities"
-              value={filters.damage_severity}
-              onChange={e => setFilter('damage_severity', e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-[#55606E]">From</span>
-              <input
-                type="date"
-                value={filters.time_from}
-                onChange={e => setFilter('time_from', e.target.value)}
-                className="rounded border border-[#EDEFF0] px-2.5 py-1.5 text-sm focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-[#55606E]">To</span>
-              <input
-                type="date"
-                value={filters.time_to}
-                onChange={e => setFilter('time_to', e.target.value)}
-                className="rounded border border-[#EDEFF0] px-2.5 py-1.5 text-sm focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
-              />
-            </label>
-          </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label className="block font-normal">
+                  <span className={fieldLabelClass}>From</span>
+                  <input
+                    type="date"
+                    value={filters.time_from}
+                    onChange={e => setFilter('time_from', e.target.value)}
+                    className={fieldInputClass}
+                  />
+                </label>
+                <label className="block font-normal">
+                  <span className={fieldLabelClass}>To</span>
+                  <input
+                    type="date"
+                    value={filters.time_to}
+                    onChange={e => setFilter('time_to', e.target.value)}
+                    className={fieldInputClass}
+                  />
+                </label>
+              </div>
+            </div>
+          </Panel>
         </div>
 
-        {status !== 'idle' && (
-          <div
-            className={`rounded p-3 flex items-center gap-2 ${
-              status === 'error'
-                ? 'bg-red-50 border border-red-200'
-                : status === 'done'
-                ? 'bg-green-50 border border-green-200'
-                : 'bg-[#B5D5F5]/20 border border-[#B5D5F5]'
-            }`}
-          >
-            {isBusy && (
-              <div className="w-3.5 h-3.5 flex-shrink-0 animate-spin border-2 border-[#006EB5] border-t-transparent rounded-full" />
+        <div className="space-y-5 lg:sticky lg:top-32">
+          <Panel title="3. Download">
+            {status !== 'idle' && (
+              <Alert
+                tone={status === 'error' ? 'error' : status === 'done' ? 'success' : 'info'}
+                className="mb-3 flex items-center gap-2"
+              >
+                {isBusy && <Spinner className="h-3.5 w-3.5 flex-shrink-0" />}
+                <span>{STATUS_LABEL[status]}</span>
+              </Alert>
             )}
-            <p
-              className={`text-sm ${
-                status === 'error' ? 'text-[#EE402D]' : status === 'done' ? 'text-green-800' : 'text-[#232E3D]'
-              }`}
-            >
-              {STATUS_LABEL[status]}
+
+            <Button loading={isBusy} onClick={handleExport} className="w-full" size="lg">
+              {!isBusy && <Download className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />}
+              Download {format.toUpperCase()}
+            </Button>
+          </Panel>
+
+          <div className="flex gap-3 rounded-lg border border-[#B5D5F5] bg-[#B5D5F5]/20 p-4">
+            <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#006EB5]" aria-hidden="true" />
+            <p className="text-xs leading-relaxed text-[#232E3D]">
+              <strong>Note:</strong> Reporter PII is stripped from all exports at the service layer,
+              regardless of filters applied — this cannot be bypassed via the dashboard or API.
             </p>
           </div>
-        )}
-
-        <Button loading={isBusy} onClick={handleExport} className="w-full" size="lg">
-          Download {format.toUpperCase()}
-        </Button>
+        </div>
       </div>
-
-      <div className="mt-4 p-4 bg-[#B5D5F5]/20 rounded-lg border border-[#B5D5F5]">
-        <p className="text-xs text-[#232E3D]">
-          <strong>Note:</strong> Reporter PII is stripped from all exports at the service layer,
-          regardless of filters applied — this cannot be bypassed via the dashboard or API.
-        </p>
-      </div>
-    </div>
+    </PageContainer>
   );
 }

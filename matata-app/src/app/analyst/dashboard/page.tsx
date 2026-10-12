@@ -2,12 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Download, Inbox, SlidersHorizontal, TriangleAlert, X } from 'lucide-react';
 import { analystApi } from '@/lib/api';
 import type { PaginatedReports, ReportListItem } from '@/lib/types';
 import { formatDate, severityColors, statusColors, priorityColors, infraLabels } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
 import { useAnalystStreamContext } from '@/contexts/AnalystStreamContext';
+import {
+  Chip,
+  EmptyState,
+  LoadingBlock,
+  PageContainer,
+  PageHeader,
+  SelectField,
+  checkboxClass,
+  fieldInputClass,
+  fieldLabelClass,
+} from '@/components/analyst/ui';
 
 const LIMIT = 50;
 
@@ -23,6 +34,19 @@ const EMPTY_FILTERS = {
   min_ai_confidence: '',
   divergence_only: false,
 };
+
+function AiConfidence({ report }: { report: ReportListItem }) {
+  return (
+    <span className="inline-flex items-center gap-1 tabular-nums">
+      {report.ai_confidence !== null ? `${Math.round((report.ai_confidence || 0) * 100)}%` : '—'}
+      {report.ai_divergence && (
+        <span title="AI disagrees with reporter severity" className="text-[#FBC412]">
+          <TriangleAlert className="h-3.5 w-3.5" aria-label="AI disagrees with reporter severity" />
+        </span>
+      )}
+    </span>
+  );
+}
 
 export default function AnalystDashboardPage() {
   const [data, setData] = useState<PaginatedReports | null>(null);
@@ -75,40 +99,40 @@ export default function AnalystDashboardPage() {
   ).length;
 
   const totalPages = data ? Math.ceil(data.total / LIMIT) : 0;
+  const firstRow = data && data.items.length ? (page - 1) * LIMIT + 1 : 0;
+  const lastRow = data ? firstRow + data.items.length - 1 : 0;
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-xl font-bold text-[#232E3D]">Damage Reports</h1>
-          {data && (
-            <p className="text-sm text-[#55606E] mt-0.5">
-              {data.total.toLocaleString()} total reports
-            </p>
-          )}
-        </div>
-        <Link
-          href="/analyst/export"
-          className="px-3 py-1.5 text-sm text-[#006EB5] border border-[#006EB5] rounded hover:bg-[#006EB5] hover:text-white transition-colors"
-        >
-          Export data
-        </Link>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Damage Reports"
+        meta={data && <span>{data.total.toLocaleString()} total reports</span>}
+        actions={
+          <Link
+            href="/analyst/export"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#006EB5] px-3 py-1.5 text-sm font-medium text-[#006EB5] transition-colors hover:bg-[#006EB5] hover:text-white"
+          >
+            <Download className="h-4 w-4" aria-hidden="true" />
+            Export data
+          </Link>
+        }
+      />
 
       {hasNewActivity && streamStatus === 'live' && (
         <button
           onClick={load}
-          className="w-full mb-4 flex items-center justify-center gap-2 py-2 bg-[#006EB5]/5 border border-[#B5D5F5] rounded-md text-sm text-[#006EB5] font-medium hover:bg-[#006EB5]/10 transition-colors"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-md border border-[#B5D5F5] bg-[#006EB5]/5 py-2 text-sm font-medium text-[#006EB5] transition-colors hover:bg-[#006EB5]/10"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#006EB5] animate-pulse" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#006EB5]" />
           New activity — refresh list
         </button>
       )}
 
       {/* Filters */}
-      <div className="mb-6 p-4 bg-white rounded-lg border border-[#EDEFF0]">
-        <div className="flex flex-wrap gap-3">
-          <Select
+      <section aria-label="Filters" className="mb-5 rounded-lg border border-[#EDEFF0] bg-white p-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <SelectField
+            label="Status"
             options={[
               { value: 'pending', label: 'Pending' },
               { value: 'verified', label: 'Verified' },
@@ -119,9 +143,9 @@ export default function AnalystDashboardPage() {
             placeholder="All statuses"
             value={filters.status}
             onChange={e => setFilter('status', e.target.value)}
-            className="min-w-[140px]"
           />
-          <Select
+          <SelectField
+            label="Crisis"
             options={[
               { value: 'flood', label: 'Flood' },
               { value: 'earthquake', label: 'Earthquake' },
@@ -132,9 +156,9 @@ export default function AnalystDashboardPage() {
             placeholder="All crises"
             value={filters.crisis_type}
             onChange={e => setFilter('crisis_type', e.target.value)}
-            className="min-w-[120px]"
           />
-          <Select
+          <SelectField
+            label="Infrastructure"
             options={[
               { value: 'residential', label: infraLabels.residential },
               { value: 'commercial', label: infraLabels.commercial },
@@ -146,9 +170,9 @@ export default function AnalystDashboardPage() {
             placeholder="All infrastructure"
             value={filters.infrastructure_type}
             onChange={e => setFilter('infrastructure_type', e.target.value)}
-            className="min-w-[150px]"
           />
-          <Select
+          <SelectField
+            label="Severity"
             options={[
               { value: 'minimal', label: 'Minimal' },
               { value: 'partial', label: 'Partial' },
@@ -157,9 +181,9 @@ export default function AnalystDashboardPage() {
             placeholder="All severities"
             value={filters.damage_severity}
             onChange={e => setFilter('damage_severity', e.target.value)}
-            className="min-w-[130px]"
           />
-          <Select
+          <SelectField
+            label="Priority"
             options={[
               { value: 'critical', label: 'Critical priority' },
               { value: 'high', label: 'High priority' },
@@ -169,9 +193,9 @@ export default function AnalystDashboardPage() {
             placeholder="All priorities"
             value={filters.review_priority}
             onChange={e => setFilter('review_priority', e.target.value)}
-            className="min-w-[140px]"
           />
-          <Select
+          <SelectField
+            label="Sort by"
             options={[
               { value: '', label: 'Priority-first (default)' },
               { value: 'severity', label: 'Severity-first' },
@@ -179,40 +203,49 @@ export default function AnalystDashboardPage() {
             ]}
             value={filters.sort_by}
             onChange={e => setFilter('sort_by', e.target.value)}
-            className="min-w-[170px]"
           />
-          <Button variant="ghost" size="sm" onClick={() => setShowAdvanced(v => !v)}>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowAdvanced(v => !v)} aria-expanded={showAdvanced}>
+            <SlidersHorizontal className="mr-1.5 h-4 w-4" aria-hidden="true" />
             {showAdvanced ? 'Hide' : 'More filters'}
           </Button>
           {activeFilterCount > 0 && (
             <Button variant="ghost" size="sm" onClick={() => setFilters(EMPTY_FILTERS)}>
+              <X className="mr-1.5 h-4 w-4" aria-hidden="true" />
               Clear filters
             </Button>
+          )}
+          {activeFilterCount > 0 && (
+            <span className="ml-auto text-xs text-[#55606E]">
+              {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} applied
+            </span>
           )}
         </div>
 
         {showAdvanced && (
-          <div className="flex flex-wrap items-end gap-3 mt-3 pt-3 border-t border-[#EDEFF0]">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-[#55606E]">From</span>
+          <div className="mt-3 grid grid-cols-2 items-end gap-3 border-t border-[#EDEFF0] pt-3 md:grid-cols-3 xl:grid-cols-6">
+            <label className="block font-normal">
+              <span className={fieldLabelClass}>From</span>
               <input
                 type="date"
                 value={filters.time_from}
                 onChange={e => setFilter('time_from', e.target.value)}
-                className="rounded border border-[#EDEFF0] px-2.5 py-1.5 text-sm focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
+                className={fieldInputClass}
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-[#55606E]">To</span>
+            <label className="block font-normal">
+              <span className={fieldLabelClass}>To</span>
               <input
                 type="date"
                 value={filters.time_to}
                 onChange={e => setFilter('time_to', e.target.value)}
-                className="rounded border border-[#EDEFF0] px-2.5 py-1.5 text-sm focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
+                className={fieldInputClass}
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-[#55606E]">Min. AI confidence</span>
+            <label className="block font-normal">
+              <span className={fieldLabelClass}>Min. AI confidence</span>
               <input
                 type="number"
                 min={0}
@@ -221,62 +254,61 @@ export default function AnalystDashboardPage() {
                 placeholder="0.0–1.0"
                 value={filters.min_ai_confidence}
                 onChange={e => setFilter('min_ai_confidence', e.target.value)}
-                className="w-28 rounded border border-[#EDEFF0] px-2.5 py-1.5 text-sm focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
+                className={fieldInputClass}
               />
             </label>
-            <label className="flex items-center gap-2 pb-1.5">
+            <label className="col-span-2 flex h-9 items-center gap-2 font-normal md:col-span-1 xl:col-span-2">
               <input
                 type="checkbox"
                 checked={filters.divergence_only}
                 onChange={e => setFilter('divergence_only', e.target.checked)}
-                className="rounded border-[#EDEFF0] text-[#006EB5] focus:ring-[#006EB5]"
+                className={checkboxClass}
               />
               <span className="text-sm text-[#232E3D]">AI divergence only</span>
             </label>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-[#EDEFF0] overflow-hidden">
+      {/* Results */}
+      <div className="overflow-hidden rounded-lg border border-[#EDEFF0] bg-white">
         {loading ? (
-          <div className="py-16 text-center">
-            <div className="inline-block animate-spin w-6 h-6 border-2 border-[#006EB5] border-t-transparent rounded-full" />
-          </div>
+          <LoadingBlock />
         ) : !data?.items.length ? (
-          <div className="py-16 text-center text-sm text-[#55606E]">No reports found</div>
+          <EmptyState icon={Inbox} title="No reports found">
+            {activeFilterCount > 0 ? 'Try clearing a filter to widen the list.' : undefined}
+          </EmptyState>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Table — laptops and up */}
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#EDEFF0] bg-[#F7F8FA]">
-                    <th className="text-left px-4 py-3 font-medium text-[#55606E]">Priority</th>
-                    <th className="text-left px-4 py-3 font-medium text-[#55606E]">ID</th>
-                    <th className="text-left px-4 py-3 font-medium text-[#55606E]">Crisis</th>
-                    <th className="text-left px-4 py-3 font-medium text-[#55606E]">Severity</th>
-                    <th className="text-left px-4 py-3 font-medium text-[#55606E]">Status</th>
-                    <th className="text-left px-4 py-3 font-medium text-[#55606E]">Submitted</th>
-                    <th className="text-left px-4 py-3 font-medium text-[#55606E]">AI Conf.</th>
+                  <tr className="border-b border-[#EDEFF0] bg-[#F7F8FA] text-left text-xs uppercase tracking-wide text-[#55606E]">
+                    <th className="px-4 py-2.5 font-medium">Priority</th>
+                    <th className="px-4 py-2.5 font-medium">ID</th>
+                    <th className="px-4 py-2.5 font-medium">Crisis</th>
+                    <th className="px-4 py-2.5 font-medium">Severity</th>
+                    <th className="px-4 py-2.5 font-medium">Status</th>
+                    <th className="px-4 py-2.5 font-medium">Submitted</th>
+                    <th className="px-4 py-2.5 font-medium">AI Conf.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.items.map((report: ReportListItem) => (
                     <tr
                       key={report.id}
-                      className="border-b border-[#EDEFF0] hover:bg-[#F7F8FA] transition-colors"
+                      className="border-b border-[#EDEFF0] transition-colors last:border-0 hover:bg-[#F7F8FA]"
                     >
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium capitalize ${priorityColors[report.review_priority] || ''}`}
-                        >
+                        <Chip className={`border ${priorityColors[report.review_priority] || ''}`}>
                           {report.review_priority}
-                        </span>
+                        </Chip>
                       </td>
                       <td className="px-4 py-3">
                         <Link
                           href={`/analyst/reports/${report.id}`}
-                          className="text-[#006EB5] hover:underline font-mono text-xs"
+                          className="font-mono text-xs font-medium text-[#006EB5] hover:underline"
                         >
                           {report.id.slice(0, 8)}
                         </Link>
@@ -285,34 +317,14 @@ export default function AnalystDashboardPage() {
                         {report.crisis_type} / {report.infrastructure_type}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[report.damage_severity]}`}
-                        >
-                          {report.damage_severity}
-                        </span>
+                        <Chip className={severityColors[report.damage_severity]}>{report.damage_severity}</Chip>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${statusColors[report.status]}`}
-                        >
-                          {report.status.replace(/_/g, ' ')}
-                        </span>
+                        <Chip className={statusColors[report.status]}>{report.status.replace(/_/g, ' ')}</Chip>
                       </td>
-                      <td className="px-4 py-3 text-[#55606E] whitespace-nowrap">
-                        {formatDate(report.created_at)}
-                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[#55606E]">{formatDate(report.created_at)}</td>
                       <td className="px-4 py-3 text-[#55606E]">
-                        {report.ai_confidence !== null
-                          ? `${Math.round((report.ai_confidence || 0) * 100)}%`
-                          : '—'}
-                        {report.ai_divergence && (
-                          <span
-                            title="AI disagrees with reporter severity"
-                            className="ml-1 text-[#FBC412]"
-                          >
-                            ⚠
-                          </span>
-                        )}
+                        <AiConfidence report={report} />
                       </td>
                     </tr>
                   ))}
@@ -320,18 +332,53 @@ export default function AnalystDashboardPage() {
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-[#EDEFF0]">
-                <p className="text-xs text-[#55606E]">
-                  Page {page} of {totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage(p => p - 1)}
+            {/* Cards — phones and tablets */}
+            <ul className="divide-y divide-[#EDEFF0] lg:hidden">
+              {data.items.map((report: ReportListItem) => (
+                <li key={report.id}>
+                  <Link
+                    href={`/analyst/reports/${report.id}`}
+                    className="block px-4 py-3 font-normal transition-colors hover:bg-[#F7F8FA]"
                   >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="min-w-0 text-sm font-semibold capitalize text-[#232E3D]">
+                        {report.crisis_type} / {report.infrastructure_type}
+                      </p>
+                      <span className="flex-shrink-0 font-mono text-xs font-medium text-[#006EB5]">
+                        {report.id.slice(0, 8)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <Chip className={`border ${priorityColors[report.review_priority] || ''}`}>
+                        {report.review_priority}
+                      </Chip>
+                      <Chip className={severityColors[report.damage_severity]}>{report.damage_severity}</Chip>
+                      <Chip className={statusColors[report.status]}>{report.status.replace(/_/g, ' ')}</Chip>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3 text-xs text-[#55606E]">
+                      <span>{formatDate(report.created_at)}</span>
+                      <span className="inline-flex items-center gap-1">
+                        AI <AiConfidence report={report} />
+                      </span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EDEFF0] px-4 py-3">
+              <p className="text-xs text-[#55606E]">
+                Showing {firstRow.toLocaleString()}–{lastRow.toLocaleString()} of {data.total.toLocaleString()}
+                {totalPages > 1 && (
+                  <>
+                    {' · '}Page {page} of {totalPages}
+                  </>
+                )}
+              </p>
+              {totalPages > 1 && (
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                    <ChevronLeft className="-ml-1 mr-1 h-4 w-4" aria-hidden="true" />
                     Previous
                   </Button>
                   <Button
@@ -341,13 +388,14 @@ export default function AnalystDashboardPage() {
                     onClick={() => setPage(p => p + 1)}
                   >
                     Next
+                    <ChevronRight className="-mr-1 ml-1 h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

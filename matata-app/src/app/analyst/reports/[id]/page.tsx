@@ -6,9 +6,17 @@ import Link from 'next/link';
 import { analystApi } from '@/lib/api';
 import type { AnalystReportDetail, DamageSeverity } from '@/lib/types';
 import { formatDate, severityColors, statusColors, priorityColors } from '@/lib/utils';
+import { Check, ChevronRight, ExternalLink, MapPinOff, TriangleAlert, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
+import {
+  Alert,
+  Chip,
+  LoadingBlock,
+  PageContainer,
+  Panel,
+  SelectField,
+} from '@/components/analyst/ui';
 
 // Leaflet touches `window` at import time; load the map in the browser only.
 const MatchedBuildingMap = dynamic(() => import('@/components/MatchedBuildingMap'), {
@@ -160,50 +168,113 @@ export default function AnalystReportDetailPage({
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin w-6 h-6 border-2 border-[#006EB5] border-t-transparent rounded-full" />
-      </div>
-    );
+    return <LoadingBlock />;
   }
 
   if (!report) {
     return (
-      <div className="p-6">
+      <PageContainer>
         <p className="text-[#EE402D]">{error || 'Report not found.'}</p>
         <Link href="/analyst/dashboard" className="text-sm text-[#006EB5] mt-2 block hover:underline">
           ← Back to reports
         </Link>
-      </div>
+      </PageContainer>
     );
   }
 
+  const details: { label: string; value: React.ReactNode }[] = [
+    {
+      label: 'Reporter severity',
+      value: <Chip className={severityColors[report.damage_severity]}>{report.damage_severity}</Chip>,
+    },
+    {
+      label: 'AI prediction',
+      value: report.ai_severity_prediction ? (
+        <Chip className={severityColors[report.ai_severity_prediction]}>
+          {report.ai_severity_prediction} ({Math.round((report.ai_confidence || 0) * 100)}%)
+        </Chip>
+      ) : (
+        <span className="text-[#55606E]">Pending</span>
+      ),
+    },
+    {
+      label: 'Analyst override',
+      value: report.analyst_severity_override ? (
+        <Chip className={severityColors[report.analyst_severity_override]}>{report.analyst_severity_override}</Chip>
+      ) : (
+        <span className="text-[#55606E]">—</span>
+      ),
+    },
+    { label: 'Trust tier', value: `Level ${report.reporter_trust_tier}` },
+    {
+      label: 'Photo status',
+      value: <span className="capitalize">{report.photo_status.replace(/_/g, ' ')}</span>,
+    },
+    {
+      label: 'Electricity',
+      value: <span className="capitalize">{report.electricity_status?.replace(/_/g, ' ') || '—'}</span>,
+    },
+    {
+      label: 'Health services',
+      value: <span className="capitalize">{report.health_services_status || '—'}</span>,
+    },
+    {
+      label: 'Debris clearing',
+      value:
+        report.debris_clearing_needed === true ? 'Yes' : report.debris_clearing_needed === false ? 'No' : '—',
+    },
+  ];
+
   return (
-    <div className="p-6 max-w-4xl">
-      <div className="flex items-center gap-2 text-sm text-[#55606E] mb-6">
-        <Link href="/analyst/dashboard" className="hover:text-[#006EB5] transition-colors">
+    <PageContainer>
+      <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-sm text-[#55606E]">
+        <Link href="/analyst/dashboard" className="font-medium text-[#55606E] hover:text-[#006EB5] transition-colors">
           Reports
         </Link>
-        <span>/</span>
+        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
         <span className="font-mono text-[#232E3D]">{report.id.slice(0, 8).toUpperCase()}</span>
+      </nav>
+
+      {/* Report header */}
+      <div className="mb-5 rounded-lg border border-[#EDEFF0] bg-white px-4 py-4 sm:px-5">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Chip className={`border ${priorityColors[report.review_priority || 'normal']}`}>
+            {report.review_priority || 'normal'} priority
+          </Chip>
+          <Chip className={statusColors[report.status]}>{report.status.replace(/_/g, ' ')}</Chip>
+          {report.ai_divergence && (
+            <Chip className="border border-yellow-200 bg-yellow-50 normal-case text-yellow-800">
+              <TriangleAlert className="h-3 w-3" aria-hidden="true" /> AI divergence
+            </Chip>
+          )}
+        </div>
+        <h1 className="text-xl font-bold capitalize tracking-normal text-[#232E3D] sm:text-2xl">
+          {report.crisis_type} — {report.infrastructure_type}
+        </h1>
+        <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#55606E]">
+          <div className="flex gap-1.5">
+            <dt>Report ID</dt>
+            <dd className="break-all font-mono text-[#232E3D]">{report.id}</dd>
+          </div>
+          <div className="flex gap-1.5">
+            <dt>Submitted</dt>
+            <dd className="text-[#232E3D]">{formatDate(report.created_at)}</dd>
+          </div>
+        </dl>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
-          <p className="text-sm text-[#EE402D]">{error}</p>
-        </div>
-      )}
+      {error && <Alert className="mb-4">{error}</Alert>}
 
       {report.status === 'pending_merge_review' && (
-        <div className="bg-[#FBC412]/10 border border-[#FBC412]/40 rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-[#FBC412]/40 bg-[#FBC412]/10 p-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-[#232E3D]">Awaiting merge review</p>
-            <p className="text-xs text-[#55606E] mt-0.5">
+            <p className="mt-0.5 text-xs leading-relaxed text-[#55606E]">
               The duplicate-detection system flagged this report as a likely duplicate (composite
               score ≥ 0.9). Confirm to merge it, or reject to keep it as an independent report.
             </p>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex flex-shrink-0 gap-2">
             <Button size="sm" variant="secondary" loading={mergeActing} onClick={rejectPendingMerge}>
               Reject
             </Button>
@@ -214,151 +285,59 @@ export default function AnalystReportDetailPage({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
         {/* Main info */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
-            <div className="mb-4">
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span
-                  className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium capitalize ${priorityColors[report.review_priority || 'normal']}`}
-                >
-                  {report.review_priority || 'normal'} priority
-                </span>
-                <span
-                  className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${statusColors[report.status]}`}
-                >
-                  {report.status.replace(/_/g, ' ')}
-                </span>
-                {report.ai_divergence && (
-                  <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-yellow-50 text-yellow-800 border border-yellow-200">
-                    ⚠ AI divergence
-                  </span>
-                )}
-              </div>
-              <h1 className="text-lg font-bold text-[#232E3D] capitalize">
-                {report.crisis_type} — {report.infrastructure_type}
-              </h1>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-              {[
-                {
-                  label: 'Report ID',
-                  value: <span className="font-mono text-xs break-all">{report.id}</span>,
-                },
-                { label: 'Submitted', value: formatDate(report.created_at) },
-                {
-                  label: 'Reporter severity',
-                  value: (
-                    <span
-                      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[report.damage_severity]}`}
-                    >
-                      {report.damage_severity}
-                    </span>
-                  ),
-                },
-                {
-                  label: 'AI prediction',
-                  value: report.ai_severity_prediction ? (
-                    <span
-                      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[report.ai_severity_prediction]}`}
-                    >
-                      {report.ai_severity_prediction} (
-                      {Math.round((report.ai_confidence || 0) * 100)}%)
-                    </span>
-                  ) : (
-                    <span className="text-[#55606E]">Pending</span>
-                  ),
-                },
-                {
-                  label: 'Analyst override',
-                  value: report.analyst_severity_override ? (
-                    <span
-                      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[report.analyst_severity_override]}`}
-                    >
-                      {report.analyst_severity_override}
-                    </span>
-                  ) : (
-                    <span className="text-[#55606E]">—</span>
-                  ),
-                },
-                { label: 'Trust tier', value: `Level ${report.reporter_trust_tier}` },
-                {
-                  label: 'Photo status',
-                  value: (
-                    <span className="capitalize">
-                      {report.photo_status.replace(/_/g, ' ')}
-                    </span>
-                  ),
-                },
-                {
-                  label: 'Electricity',
-                  value: (
-                    <span className="capitalize">
-                      {report.electricity_status?.replace(/_/g, ' ') || '—'}
-                    </span>
-                  ),
-                },
-                {
-                  label: 'Health services',
-                  value: (
-                    <span className="capitalize">{report.health_services_status || '—'}</span>
-                  ),
-                },
-                {
-                  label: 'Debris clearing',
-                  value:
-                    report.debris_clearing_needed === true
-                      ? 'Yes'
-                      : report.debris_clearing_needed === false
-                      ? 'No'
-                      : '—',
-                },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-[#55606E] mb-0.5">{label}</p>
-                  <div className="text-[#232E3D] font-medium">{value}</div>
+        <div className="space-y-5 lg:col-span-2">
+          <Panel title="Report details">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm md:grid-cols-4">
+              {details.map(({ label, value }) => (
+                <div key={label} className="min-w-0">
+                  <dt className="mb-1 text-xs text-[#55606E]">{label}</dt>
+                  <dd className="font-medium text-[#232E3D]">{value}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
 
-            {report.most_pressing_needs && (
-              <div className="mt-4 pt-4 border-t border-[#EDEFF0]">
-                <p className="text-xs text-[#55606E] mb-1">Most pressing needs</p>
-                <p className="text-sm text-[#232E3D]">{report.most_pressing_needs}</p>
-              </div>
-            )}
+            {(report.most_pressing_needs || report.landmark_description || report.lat) && (
+              <div className="mt-5 space-y-4 border-t border-[#EDEFF0] pt-4">
+                {report.most_pressing_needs && (
+                  <div>
+                    <p className="mb-1 text-xs text-[#55606E]">Most pressing needs</p>
+                    <p className="text-sm leading-relaxed text-[#232E3D]">{report.most_pressing_needs}</p>
+                  </div>
+                )}
 
-            {report.landmark_description && (
-              <div className="mt-3">
-                <p className="text-xs text-[#55606E] mb-1">Landmark description</p>
-                <p className="text-sm text-[#232E3D]">{report.landmark_description}</p>
-              </div>
-            )}
+                {report.landmark_description && (
+                  <div>
+                    <p className="mb-1 text-xs text-[#55606E]">Landmark description</p>
+                    <p className="text-sm leading-relaxed text-[#232E3D]">{report.landmark_description}</p>
+                  </div>
+                )}
 
-            {report.lat && (
-              <div className="mt-3">
-                <p className="text-xs text-[#55606E] mb-1">GPS coordinates</p>
-                <a
-                  href={`https://maps.google.com?q=${report.lat},${report.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-[#006EB5] hover:underline font-mono"
-                >
-                  {report.lat.toFixed(6)}, {report.lng?.toFixed(6)}
-                </a>
-                {report.gps_accuracy_m && (
-                  <span className="text-xs text-[#55606E] ml-2">(±{report.gps_accuracy_m}m)</span>
+                {report.lat && (
+                  <div>
+                    <p className="mb-1 text-xs text-[#55606E]">GPS coordinates</p>
+                    <a
+                      href={`https://maps.google.com?q=${report.lat},${report.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-mono text-sm font-medium text-[#006EB5] hover:underline"
+                    >
+                      {report.lat.toFixed(6)}, {report.lng?.toFixed(6)}
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                    {report.gps_accuracy_m && (
+                      <span className="ml-2 text-xs text-[#55606E]">(±{report.gps_accuracy_m}m)</span>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
+          </Panel>
 
           {/* Photo */}
           {hasPhoto && (
-            <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
-              <h3 className="font-medium text-[#232E3D] mb-3 text-sm">Photo</h3>
+            <Panel title="Photo">
               {photoError ? (
                 <div className="bg-[#EDEFF0] rounded aspect-video flex items-center justify-center">
                   <p className="text-sm text-[#55606E]">Could not load photo.</p>
@@ -375,17 +354,20 @@ export default function AnalystReportDetailPage({
                   <div className="animate-spin w-5 h-5 border-2 border-[#006EB5] border-t-transparent rounded-full" />
                 </div>
               )}
-            </div>
+            </Panel>
           )}
 
           {/* Building damage timeline */}
           {!!report.building_timeline?.length && (
-            <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
-              <h3 className="font-medium text-[#232E3D] mb-1 text-sm">Building Damage Timeline</h3>
-              <p className="text-xs text-[#55606E] mb-4">
-                Every report ever filed against this building, in chronological order — use this to
-                spot escalation across multiple events or repeated submissions.
-              </p>
+            <Panel
+              title="Building Damage Timeline"
+              description={
+                <>
+                  Every report ever filed against this building, in chronological order — use this to
+                  spot escalation across multiple events or repeated submissions.
+                </>
+              }
+            >
               <ol className="relative border-l border-[#EDEFF0] pl-4 space-y-4">
                 {report.building_timeline.map(item => (
                   <li key={item.id} className="relative">
@@ -395,16 +377,8 @@ export default function AnalystReportDetailPage({
                       }`}
                     />
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[item.damage_severity]}`}
-                      >
-                        {item.damage_severity}
-                      </span>
-                      <span
-                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${statusColors[item.status]}`}
-                      >
-                        {item.status.replace(/_/g, ' ')}
-                      </span>
+                      <Chip className={severityColors[item.damage_severity]}>{item.damage_severity}</Chip>
+                      <Chip className={statusColors[item.status]}>{item.status.replace(/_/g, ' ')}</Chip>
                       {item.ai_severity_prediction && (
                         <span className="text-xs text-[#55606E]">
                           AI: {item.ai_severity_prediction}
@@ -418,12 +392,11 @@ export default function AnalystReportDetailPage({
                   </li>
                 ))}
               </ol>
-            </div>
+            </Panel>
           )}
 
           {/* Notes */}
-          <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
-            <h3 className="font-medium text-[#232E3D] mb-4 text-sm">Analyst Notes</h3>
+          <Panel title="Analyst Notes">
             {(report.notes || []).length === 0 ? (
               <p className="text-sm text-[#55606E] mb-4">No notes yet.</p>
             ) : (
@@ -436,9 +409,10 @@ export default function AnalystReportDetailPage({
                 ))}
               </div>
             )}
-            <div className="flex gap-2">
+            <div className="flex items-start gap-2">
               <textarea
                 rows={2}
+                aria-label="Add a note"
                 className="flex-1 rounded border border-[#EDEFF0] px-3 py-2 text-sm focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
                 placeholder="Add a note..."
                 value={noteText}
@@ -448,51 +422,64 @@ export default function AnalystReportDetailPage({
                 Add
               </Button>
             </div>
-          </div>
+          </Panel>
 
           {/* Manual merge tool */}
-          <div className="bg-white rounded-lg border border-[#EDEFF0] p-6">
-            <h3 className="font-medium text-[#232E3D] mb-1 text-sm">Manual Duplicate Merge</h3>
-            <p className="text-xs text-[#55606E] mb-3">
-              If you&apos;ve spotted a duplicate the automated scorer missed, mark it as a duplicate
-              of this report. This report becomes the surviving (primary) record.
-            </p>
+          <Panel
+            title="Manual Duplicate Merge"
+            description={
+              <>
+                If you&apos;ve spotted a duplicate the automated scorer missed, mark it as a duplicate
+                of this report. This report becomes the surviving (primary) record.
+              </>
+            }
+          >
             {mergeSuccess && (
-              <div className="bg-green-50 border border-green-200 rounded p-2 mb-3">
-                <p className="text-xs text-green-800">✓ {mergeSuccess}</p>
-              </div>
+              <Alert tone="success" className="mb-3 text-xs">
+                ✓ {mergeSuccess}
+              </Alert>
             )}
-            <div className="flex gap-2">
-              <Input
-                placeholder="Duplicate report ID (UUID)"
-                value={duplicateOfId}
-                onChange={e => setDuplicateOfId(e.target.value)}
-                className="flex-1"
-              />
-              <Button size="sm" loading={merging} onClick={handleManualMerge} disabled={!duplicateOfId.trim()}>
+            <div className="flex flex-wrap items-start gap-2">
+              <div className="min-w-[200px] flex-1">
+                <Input
+                  aria-label="Duplicate report ID"
+                  placeholder="Duplicate report ID (UUID)"
+                  value={duplicateOfId}
+                  onChange={e => setDuplicateOfId(e.target.value)}
+                  className="h-9 min-h-0"
+                />
+              </div>
+              <Button
+                size="md"
+                className="h-9"
+                loading={merging}
+                onClick={handleManualMerge}
+                disabled={!duplicateOfId.trim()}
+              >
                 Merge into this report
               </Button>
             </div>
-          </div>
+          </Panel>
         </div>
 
         {/* Actions sidebar */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-[#EDEFF0] p-5">
-            <h3 className="font-medium text-[#232E3D] mb-4 text-sm">Actions</h3>
-            <div className="space-y-2">
+        <div className="space-y-5">
+          <Panel title="Actions">
+            <div className="space-y-3">
               <Button
                 variant="primary"
-                size="sm"
-                className="w-full justify-start"
+                size="md"
+                className="w-full"
                 loading={updatingStatus}
                 onClick={() => updateStatus('verified')}
                 disabled={report.status === 'verified'}
               >
-                ✅ Verify report
+                {!updatingStatus && <Check className="-ml-1 mr-2 h-4 w-4" aria-hidden="true" />}
+                Verify report
               </Button>
-              <div className="space-y-1.5">
-                <Select
+              <div className="space-y-2 border-t border-[#EDEFF0] pt-3">
+                <SelectField
+                  label="Rejection reason"
                   options={[
                     { value: 'inaccurate', label: 'Inaccurate information' },
                     { value: 'duplicate', label: 'Duplicate report' },
@@ -506,41 +493,44 @@ export default function AnalystReportDetailPage({
                 />
                 <Button
                   variant="danger"
-                  size="sm"
-                  className="w-full justify-start"
+                  size="md"
+                  className="w-full"
                   loading={updatingStatus}
                   onClick={() => updateStatus('rejected')}
                   disabled={report.status === 'rejected'}
                 >
-                  ✗ Reject report
+                  {!updatingStatus && <X className="-ml-1 mr-2 h-4 w-4" aria-hidden="true" />}
+                  Reject report
                 </Button>
               </div>
             </div>
-          </div>
+          </Panel>
 
-          <div className="bg-white rounded-lg border border-[#EDEFF0] p-5">
-            <h3 className="font-medium text-[#232E3D] mb-4 text-sm">Severity Override</h3>
-            <p className="text-xs text-[#55606E] mb-3">
-              Reporter assessed:{' '}
-              <strong className="capitalize">{report.damage_severity}</strong>
-              {report.ai_severity_prediction && (
-                <>
-                  <br />
-                  AI prediction:{' '}
-                  <strong className="capitalize">{report.ai_severity_prediction}</strong>
-                </>
-              )}
-            </p>
-            <div className="space-y-2">
+          <Panel
+            title="Severity Override"
+            description={
+              <>
+                Reporter assessed: <strong className="capitalize">{report.damage_severity}</strong>
+                {report.ai_severity_prediction && (
+                  <>
+                    <br />
+                    AI prediction: <strong className="capitalize">{report.ai_severity_prediction}</strong>
+                  </>
+                )}
+              </>
+            }
+          >
+            <div className="grid grid-cols-3 gap-2 lg:grid-cols-1 xl:grid-cols-3">
               {(['minimal', 'partial', 'destroyed'] as DamageSeverity[]).map(sev => (
                 <button
                   key={sev}
                   type="button"
                   onClick={() => overrideSeverity(sev)}
                   disabled={overridingSeverity || report.analyst_severity_override === sev}
-                  className={`w-full px-3 py-2 rounded text-sm font-medium text-left capitalize transition-colors disabled:opacity-50 ${
+                  aria-pressed={report.analyst_severity_override === sev}
+                  className={`w-full rounded px-3 py-2 text-center text-sm font-medium capitalize transition-colors disabled:opacity-50 ${
                     report.analyst_severity_override === sev
-                      ? 'bg-[#006EB5] text-white'
+                      ? 'bg-[#006EB5] text-white disabled:opacity-100'
                       : 'bg-[#F7F8FA] text-[#232E3D] hover:bg-[#EDEFF0]'
                   }`}
                 >
@@ -548,23 +538,25 @@ export default function AnalystReportDetailPage({
                 </button>
               ))}
             </div>
-          </div>
+          </Panel>
 
           {report.reporter_building_missing && (
-            <div className="bg-white rounded-lg border border-[#FBC412] p-5">
-              <h3 className="font-medium text-[#232E3D] mb-2 text-sm">Possible mapping gap</h3>
-              <p className="text-xs text-[#55606E]">
-                The reporter says their building is not on the map, so this report was not attached to a nearby
-                building. Export with &quot;not on map only&quot; to share these locations with mappers.
-              </p>
+            <div className="flex gap-3 rounded-lg border border-[#FBC412] bg-white p-4">
+              <MapPinOff className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#232E3D]" aria-hidden="true" />
+              <div>
+                <h3 className="mb-1 text-sm font-semibold text-[#232E3D]">Possible mapping gap</h3>
+                <p className="text-xs leading-relaxed text-[#55606E]">
+                  The reporter says their building is not on the map, so this report was not attached to a nearby
+                  building. Export with &quot;not on map only&quot; to share these locations with mappers.
+                </p>
+              </div>
             </div>
           )}
 
           {report.building_id && (
-            <div className="bg-white rounded-lg border border-[#EDEFF0] p-5">
-              <h3 className="font-medium text-[#232E3D] mb-2 text-sm">Matched Building</h3>
+            <Panel title="Matched Building">
               {report.footprint_geojson && (
-                <div className="mb-3">
+                <div className="relative z-0 mb-3">
                   <MatchedBuildingMap
                     footprintGeojson={report.footprint_geojson}
                     lat={report.lat}
@@ -600,10 +592,10 @@ export default function AnalystReportDetailPage({
                   The reporter picked a different building, which was too far from their GPS fix to accept.
                 </p>
               )}
-            </div>
+            </Panel>
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

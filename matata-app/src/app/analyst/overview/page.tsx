@@ -1,26 +1,65 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import {
+  ArrowRight,
+  ClipboardList,
+  GitMerge,
+  House,
+  MapPin,
+  Plus,
+  RefreshCw,
+  TriangleAlert,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 import { statsApi, analystApi } from '@/lib/api';
-import type { StatsSummaryResponse, AIAccuracyResponse } from '@/lib/types';
-import { crisisLabels, severityColors, formatPercent, timeAgo, streamEventMeta } from '@/lib/utils';
+import type { StatsSummaryResponse, AIAccuracyResponse, HeatmapFeatureCollection } from '@/lib/types';
+import { crisisLabels, severityHex, severityLabels, formatPercent, timeAgo, streamEventMeta } from '@/lib/utils';
 import { useAnalystStreamContext } from '@/contexts/AnalystStreamContext';
+import {
+  Alert,
+  BarRow,
+  DefinitionList,
+  EmptyState,
+  KeyFigure,
+  KeyFigureRow,
+  LoadingBlock,
+  PageContainer,
+  PageHeader,
+  Panel,
+  Spinner,
+} from '@/components/analyst/ui';
 
-function StatCard({ label, value, sub, tone }: { label: string; value: string | number; sub?: string; tone?: string }) {
-  return (
-    <div className="bg-white rounded-lg border border-[#EDEFF0] p-5">
-      <p className="text-xs text-[#55606E] uppercase tracking-wide">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${tone || 'text-[#232E3D]'}`}>{value}</p>
-      {sub && <p className="text-xs text-[#55606E] mt-1">{sub}</p>}
+// Leaflet touches `window` at import time, so the map loads in the browser only.
+const HeatmapMap = dynamic(() => import('@/components/HeatmapMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-[#F7F8FA]">
+      <Spinner />
     </div>
-  );
-}
+  ),
+});
+
+const SEVERITIES = ['destroyed', 'partial', 'minimal'] as const;
+
+const EVENT_ICONS: Record<string, LucideIcon> = {
+  'report.created': Plus,
+  'report.updated': RefreshCw,
+  'report.critical': TriangleAlert,
+  'report.ai_divergence': Zap,
+};
+
+const linkClass = 'inline-flex items-center gap-1 font-medium text-[#006EB5] hover:underline';
 
 export default function AnalystOverviewPage() {
   const [stats, setStats] = useState<StatsSummaryResponse | null>(null);
   const [accuracy, setAccuracy] = useState<AIAccuracyResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mapData, setMapData] = useState<HeatmapFeatureCollection | null>(null);
+  const [mapLoading, setMapLoading] = useState(true);
   const { events, status } = useAnalystStreamContext();
 
   useEffect(() => {
@@ -32,184 +71,290 @@ export default function AnalystOverviewPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    statsApi
+      .heatmap()
+      .then(setMapData)
+      .catch(() => {})
+      .finally(() => setMapLoading(false));
+  }, []);
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin w-6 h-6 border-2 border-[#006EB5] border-t-transparent rounded-full" />
-      </div>
-    );
+    return <LoadingBlock />;
   }
 
-  return (
-    <div className="p-6 max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-[#232E3D]">Situation Overview</h1>
-          <p className="text-sm text-[#55606E] mt-0.5">
-            {stats ? `Last updated ${timeAgo(stats.last_updated)}` : ''}
-          </p>
-        </div>
-        {stats && stats.pending_duplicate_count > 0 && (
-          <Link
-            href="/analyst/merge-review"
-            className="px-3 py-1.5 text-sm bg-[#FBC412]/15 text-[#232E3D] border border-[#FBC412]/40 rounded-md hover:bg-[#FBC412]/25 transition-colors font-medium"
-          >
-            {stats.pending_duplicate_count} merge{stats.pending_duplicate_count === 1 ? '' : 's'} awaiting review →
-          </Link>
-        )}
-      </div>
+  const severityTotal = stats ? SEVERITIES.reduce((sum, sev) => sum + (stats.by_severity[sev] ?? 0), 0) : 0;
+  const crisisRows = stats
+    ? Object.entries(stats.by_crisis_type)
+        .filter(([, count]) => count > 0)
+        .sort(([, a], [, b]) => b - a)
+    : [];
+  const pointCount = mapData?.features.length ?? 0;
 
-      {/* Top-level counters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Active reports" value={stats?.total.toLocaleString() ?? '—'} />
-        <StatCard
+  return (
+    <PageContainer>
+      <PageHeader
+        title="Situation Overview"
+        meta={
+          <>
+            {stats && <span>Last updated {timeAgo(stats.last_updated)}</span>}
+            <span className="capitalize">Feed: {status}</span>
+          </>
+        }
+        actions={
+          <>
+            {stats && stats.pending_duplicate_count > 0 && (
+              <Link
+                href="/analyst/merge-review"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#FBC412]/40 bg-[#FBC412]/15 px-3 py-1.5 text-sm font-medium text-[#232E3D] transition-colors hover:bg-[#FBC412]/25"
+              >
+                {stats.pending_duplicate_count} merge{stats.pending_duplicate_count === 1 ? '' : 's'} awaiting review
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            )}
+            <Link
+              href="/analyst/dashboard"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#006EB5] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#005a94]"
+            >
+              <ClipboardList className="h-4 w-4" aria-hidden="true" />
+              Review reports
+            </Link>
+          </>
+        }
+      />
+
+      {/* Key figures */}
+      <KeyFigureRow className="mb-5 grid-cols-2 lg:grid-cols-5">
+        <KeyFigure
+          className="col-span-2 lg:col-span-1"
+          icon={ClipboardList}
+          label="Active reports"
+          value={stats?.total.toLocaleString() ?? '—'}
+          href="/analyst/dashboard"
+        />
+        <KeyFigure
+          icon={TriangleAlert}
           label="Destroyed"
           value={stats?.by_severity.destroyed ?? 0}
           tone="text-[#EE402D]"
+          iconClassName="bg-[#EE402D]/10 text-[#EE402D]"
         />
-        <StatCard
+        <KeyFigure
+          icon={House}
           label="Partial damage"
           value={stats?.by_severity.partial ?? 0}
           tone="text-orange-600"
+          iconClassName="bg-orange-100 text-orange-600"
         />
-        <StatCard
+        <KeyFigure icon={House} label="Minimal damage" value={stats?.by_severity.minimal ?? 0} />
+        <KeyFigure
+          icon={GitMerge}
           label="Pending merges"
           value={stats?.pending_duplicate_count ?? 0}
-          tone={stats && stats.pending_duplicate_count > 0 ? 'text-[#FBC412]' : undefined}
+          tone={stats && stats.pending_duplicate_count > 0 ? 'text-[#232E3D]' : undefined}
+          iconClassName={
+            stats && stats.pending_duplicate_count > 0 ? 'bg-[#FBC412]/20 text-[#232E3D]' : undefined
+          }
+          href="/analyst/merge-review"
         />
-      </div>
+      </KeyFigureRow>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* By crisis type */}
-        <div className="bg-white rounded-lg border border-[#EDEFF0] p-5 lg:col-span-2">
-          <h3 className="font-medium text-[#232E3D] mb-4 text-sm">Reports by crisis type</h3>
-          <div className="space-y-3">
-            {stats &&
-              Object.entries(stats.by_crisis_type)
-                .filter(([, count]) => count > 0)
-                .sort(([, a], [, b]) => b - a)
-                .map(([type, count]) => {
-                  const pct = stats.total > 0 ? (count / stats.total) * 100 : 0;
-                  return (
-                    <div key={type}>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-[#232E3D] font-medium">{crisisLabels[type] || type}</span>
-                        <span className="text-[#55606E]">{count.toLocaleString()}</span>
-                      </div>
-                      <div className="h-2 bg-[#F7F8FA] rounded-full overflow-hidden">
-                        <div className="h-full bg-[#006EB5] rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-            {stats && Object.values(stats.by_crisis_type).every(c => c === 0) && (
-              <p className="text-sm text-[#55606E]">No active reports yet.</p>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {/* Map */}
+        <Panel
+          className="lg:col-span-2"
+          title="Where damage is reported"
+          description={
+            mapLoading
+              ? 'Loading…'
+              : `${pointCount.toLocaleString()} geolocated report${pointCount === 1 ? '' : 's'}, coloured by severity`
+          }
+          action={
+            <Link href="/analyst/heatmap" className={linkClass}>
+              Open map <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          }
+          bodyClassName="p-0 sm:p-0"
+        >
+          <div className="relative z-0 h-[320px] overflow-hidden rounded-b-lg sm:h-[400px] lg:h-[440px]">
+            {mapLoading ? (
+              <div className="flex h-full w-full items-center justify-center">
+                <Spinner />
+              </div>
+            ) : !mapData || pointCount === 0 ? (
+              <EmptyState icon={MapPin} title="No geolocated reports yet" className="h-full">
+                Reports with a GPS fix appear here as they arrive.
+              </EmptyState>
+            ) : (
+              <HeatmapMap data={mapData} />
             )}
           </div>
-
-          <div className="mt-6 pt-4 border-t border-[#EDEFF0] flex gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#EDEFF0] px-4 py-2.5 text-xs text-[#55606E] sm:px-5">
             {(['minimal', 'partial', 'destroyed'] as const).map(sev => (
-              <div key={sev} className="flex-1 text-center">
-                <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[sev]}`}>
-                  {sev}
-                </span>
-                <p className="text-lg font-bold text-[#232E3D] mt-1">{stats?.by_severity[sev] ?? 0}</p>
-              </div>
+              <span key={sev} className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: severityHex[sev] }} />
+                {severityLabels[sev]}
+              </span>
             ))}
           </div>
+        </Panel>
+
+        <div className="space-y-5">
+          {/* Severity breakdown */}
+          <Panel title="Damage severity" description="Share of active reports">
+            {severityTotal === 0 ? (
+              <p className="text-sm text-[#55606E]">No active reports yet.</p>
+            ) : (
+              <>
+                <div
+                  className="flex h-3 overflow-hidden rounded-full bg-[#F7F8FA]"
+                  role="img"
+                  aria-label={SEVERITIES.map(
+                    sev => `${severityLabels[sev]} ${stats?.by_severity[sev] ?? 0}`
+                  ).join(', ')}
+                >
+                  {SEVERITIES.map(sev => {
+                    const count = stats?.by_severity[sev] ?? 0;
+                    if (!count) return null;
+                    return (
+                      <span
+                        key={sev}
+                        style={{ width: `${(count / severityTotal) * 100}%`, backgroundColor: severityHex[sev] }}
+                      />
+                    );
+                  })}
+                </div>
+                <ul className="mt-4 space-y-2 text-sm">
+                  {SEVERITIES.map(sev => {
+                    const count = stats?.by_severity[sev] ?? 0;
+                    return (
+                      <li key={sev} className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2 text-[#232E3D]">
+                          <span
+                            className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                            style={{ backgroundColor: severityHex[sev] }}
+                          />
+                          {severityLabels[sev]}
+                        </span>
+                        <span className="tabular-nums text-[#55606E]">
+                          <span className="font-semibold text-[#232E3D]">{count.toLocaleString()}</span>
+                          {' · '}
+                          {Math.round((count / severityTotal) * 100)}%
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </Panel>
+
+          {/* By crisis type */}
+          <Panel title="Reports by crisis type">
+            {crisisRows.length === 0 ? (
+              <p className="text-sm text-[#55606E]">No active reports yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {crisisRows.map(([type, count]) => (
+                  <BarRow
+                    key={type}
+                    label={crisisLabels[type] || type}
+                    value={count.toLocaleString()}
+                    percent={stats && stats.total > 0 ? (count / stats.total) * 100 : 0}
+                  />
+                ))}
+              </div>
+            )}
+          </Panel>
         </div>
 
-        {/* AI accuracy snapshot */}
-        <div className="bg-white rounded-lg border border-[#EDEFF0] p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-[#232E3D] text-sm">AI calibration</h3>
-            <Link href="/analyst/ai-accuracy" className="text-xs text-[#006EB5] hover:underline">
-              Details →
-            </Link>
-          </div>
-          {!accuracy || accuracy.total_feedback === 0 ? (
+        {/* Live activity feed */}
+        <Panel
+          className="lg:col-span-2"
+          title="Live activity"
+          description="New reports and AI divergence alerts, as they happen"
+          action={<span className="capitalize text-[#55606E]">{status}</span>}
+        >
+          {events.length === 0 ? (
             <p className="text-sm text-[#55606E]">
+              Waiting for activity — new reports and AI divergence alerts will appear here in real
+              time.
+            </p>
+          ) : (
+            <ul className="max-h-80 divide-y divide-[#EDEFF0] overflow-y-auto">
+              {events.map((evt, i) => {
+                const meta = streamEventMeta[evt.event] || {
+                  label: evt.event,
+                  color: 'text-[#55606E]',
+                  icon: '•',
+                };
+                const EventIcon = EVENT_ICONS[evt.event];
+                return (
+                  <li
+                    key={`${evt.report_id}-${i}`}
+                    className="flex items-center justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0"
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span
+                        className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#F7F8FA] text-xs ${meta.color}`}
+                        aria-hidden="true"
+                      >
+                        {EventIcon ? <EventIcon className="h-3.5 w-3.5" /> : meta.icon}
+                      </span>
+                      <span className="truncate text-[#232E3D]">{meta.label}</span>
+                      {evt.review_priority && (
+                        <span className="flex-shrink-0 text-xs capitalize text-[#55606E]">({evt.review_priority})</span>
+                      )}
+                    </span>
+                    {evt.report_id && (
+                      <Link href={`/analyst/reports/${evt.report_id}`} className={`${linkClass} flex-shrink-0 text-xs`}>
+                        View
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+
+        {/* AI accuracy snapshot */}
+        <Panel
+          title="AI calibration"
+          action={
+            <Link href="/analyst/ai-accuracy" className={linkClass}>
+              Details <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          }
+        >
+          {!accuracy || accuracy.total_feedback === 0 ? (
+            <p className="text-sm leading-relaxed text-[#55606E]">
               No analyst feedback recorded yet. Verify, reject, or override a few reports to begin
               calibration.
             </p>
           ) : (
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-[#55606E]">Overall agreement</span>
-                <span className="font-medium text-[#232E3D]">{formatPercent(accuracy.agreement_rate)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#55606E]">High-confidence agreement</span>
-                <span className="font-medium text-[#232E3D]">
-                  {formatPercent(accuracy.high_confidence_agreement_rate)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#55606E]">Feedback samples</span>
-                <span className="font-medium text-[#232E3D]">{accuracy.total_feedback}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#55606E]">Divergence threshold</span>
-                <span className="font-medium text-[#232E3D]">
-                  {accuracy.recommended_divergence_threshold ?? '—'}
-                </span>
-              </div>
+            <>
+              <DefinitionList
+                rows={[
+                  { label: 'Overall agreement', value: formatPercent(accuracy.agreement_rate) },
+                  {
+                    label: 'High-confidence agreement',
+                    value: formatPercent(accuracy.high_confidence_agreement_rate),
+                  },
+                  { label: 'Feedback samples', value: accuracy.total_feedback },
+                  { label: 'Divergence threshold', value: accuracy.recommended_divergence_threshold ?? '—' },
+                ]}
+              />
               {accuracy.threshold_is_stale && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800">
+                <Alert tone="warning" className="mt-3 text-xs">
                   Calibration hasn&apos;t refreshed recently — analyst review throughput may have
                   dropped.
-                </div>
+                </Alert>
               )}
-            </div>
+            </>
           )}
-        </div>
+        </Panel>
       </div>
-
-      {/* Live activity feed */}
-      <div className="mt-6 bg-white rounded-lg border border-[#EDEFF0] p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium text-[#232E3D] text-sm">Live activity</h3>
-          <span className="text-xs text-[#55606E] capitalize">{status}</span>
-        </div>
-        {events.length === 0 ? (
-          <p className="text-sm text-[#55606E]">
-            Waiting for activity — new reports and AI divergence alerts will appear here in real
-            time.
-          </p>
-        ) : (
-          <ul className="space-y-2 max-h-80 overflow-y-auto">
-            {events.map((evt, i) => {
-              const meta = streamEventMeta[evt.event] || {
-                label: evt.event,
-                color: 'text-[#55606E]',
-                icon: '•',
-              };
-              return (
-                <li
-                  key={`${evt.report_id}-${i}`}
-                  className="flex items-center justify-between text-sm border-b border-[#EDEFF0] last:border-0 pb-2 last:pb-0"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className={meta.color}>{meta.icon}</span>
-                    <span className="text-[#232E3D]">{meta.label}</span>
-                    {evt.review_priority && (
-                      <span className="text-xs text-[#55606E] capitalize">({evt.review_priority})</span>
-                    )}
-                  </span>
-                  {evt.report_id && (
-                    <Link
-                      href={`/analyst/reports/${evt.report_id}`}
-                      className="text-xs text-[#006EB5] hover:underline flex-shrink-0 ml-2"
-                    >
-                      View
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
+    </PageContainer>
   );
 }
