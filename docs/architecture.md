@@ -142,9 +142,14 @@ flowchart TD
     Q --> CONF["redirect to /report/queued"]
     NET["browser fires 'online'"] --> SMGR["SyncManager (mounted in root layout)"]
     SMGR --> FLUSH["syncQueue(): for each queued report,<br/>POST /reports then POST /reports/:id/photo"]
-    FLUSH --> EV["dispatch window event 'matata_sync'"]
+    FLUSH --> DROP["remove each report from the queue<br/>as soon as POST /reports succeeds"]
+    DROP --> EV["dispatch window event 'matata_sync'"]
     EV --> BANNER["OfflineBanner updates pending count"]
 ```
+
+A sent report is deleted from the queue straight away, photo included, so
+nothing about it stays on the phone (the privacy policy promises this). The
+photo upload that follows uses the copy already in memory.
 
 `OfflineReport.fields` must stay in sync with the field names
 `reportsApi.submit` and `reportsApi.uploadPhoto` send, because `syncQueue()`
@@ -189,7 +194,8 @@ Add a key to `en.ts` first, then fill it in the other nine locales.
 |---|---|---|
 | Session token, refresh token, role | `localStorage` (`matata_*`) | until logout or expiry |
 | Active locale | `localStorage` (`matata_lang`) | until changed |
-| Offline report queue | `localStorage` (`matata_offline_queue`) | until synced |
+| Offline report queue | `localStorage` (`matata_offline_queue`) | until sent, then removed |
+| Report consent | `localStorage` (`matata_consent`, holds `CONSENT_VERSION`) | until unticked or the policy version changes |
 | Privy browser session | `localStorage` (`privy:*`) | until `clearPrivySession()` |
 | SSE connection status | React context (`AnalystStreamContext`) | per page load |
 | Everything else (reports, stats, accounts) | fetched from the backend, not cached | per request |

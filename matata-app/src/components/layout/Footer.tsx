@@ -20,6 +20,7 @@ export function Footer() {
         <div className="flex flex-col gap-3 text-sm">
           <p className="font-semibold">{t('nav.about')}</p>
           <Link href="#top" className="text-background/70 hover:text-background">{t('login.return_home')}</Link>
+          <Link href="/privacy" className="text-background/70 hover:text-background">{t('footer.privacy')}</Link>
           <p className="text-background/50">{t('landing.emergency_notice')}</p>
         </div>
       </div>

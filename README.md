@@ -124,6 +124,7 @@ matata-app/
         [id]/                   report detail and status
         queued/                confirmation for offline-queued reports
       my-reports/              the reporter's own submission history
+      privacy/                 privacy, consent and safeguarding policy (mirrors PRIVACY.md)
       analyst/                 role-gated analyst portal
         layout.tsx             client-side auth and role gate plus sidebar shell
         overview/  dashboard/  heatmap/  merge-review/
@@ -250,7 +251,8 @@ The report form works fully offline (`src/lib/offline.ts`):
 - If `navigator.onLine` is `false` at submit time, the report plus an
   optional base64 photo (capped at 5 MB) is pushed into a localStorage-backed
   queue (`matata_offline_queue`, shape `OfflineReport`) instead of being
-  POSTed.
+  POSTed. Each report is removed from the queue, photo included, as soon as
+  it is sent.
 - `SyncManager` (`src/components/ui/SyncManager.tsx`, mounted in the root
   layout) listens for the browser `online` event, flushes the queue via
   `syncQueue()`, then fires a `matata_sync` window event.
@@ -356,6 +358,9 @@ What this frontend does and does not defend is written up in
   backend is the enforcement point and re-checks role on every request.
 - `NEXT_PUBLIC_*` values, including the API URL and the Privy app ID, are
   baked into the client bundle. Neither is a secret.
+- How reporters' data is collected, shared, kept and deleted is in
+  [PRIVACY.md](PRIVACY.md). Reporters must agree to it before the report
+  form will submit.
 
 Report a vulnerability to collins.kubu@gmail.com, not in a public issue.
 
@@ -377,6 +382,11 @@ into the client bundle. Rebuild to change them.
   reconnection model, with diagrams.
 - [`docs/auth.md`](docs/auth.md): the Privy email OTP flow end to end,
   including Privy app setup and the security caveats.
+- [`PRIVACY.md`](PRIVACY.md): the privacy, consent and safeguarding
+  policy, also shown in the app at `/privacy`
+  (`src/app/privacy/page.tsx`). Change the two together. Reporters tick a
+  consent box before sending; bump `CONSENT_VERSION` in
+  `src/app/report/page.tsx` when the policy changes enough to ask again.
 - Backend endpoint reference:
   [`Matata-backend/docs/frontend-integration-guide.md`](https://github.com/Kubu-Ventures/Matata-backend/blob/main/docs/frontend-integration-guide.md).
 

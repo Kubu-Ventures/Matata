@@ -52,6 +52,29 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 const DRAFT_KEY = 'matata_report_draft';
 
+// Bump the version when the privacy policy changes in a way reporters must
+// agree to again; an older stored value then no longer counts as consent.
+const CONSENT_KEY = 'matata_consent';
+const CONSENT_VERSION = '2026-10-16';
+
+function loadConsent(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(CONSENT_KEY) === CONSENT_VERSION;
+  } catch {
+    return false;
+  }
+}
+
+function saveConsent(agreed: boolean) {
+  try {
+    if (agreed) localStorage.setItem(CONSENT_KEY, CONSENT_VERSION);
+    else localStorage.removeItem(CONSENT_KEY);
+  } catch {
+    /* storage unavailable — consent then lasts for this visit only */
+  }
+}
+
 function loadDraft(): { step: number; form: FormData } | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -111,6 +134,8 @@ export default function ReportPage() {
   const [locError, setLocError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  // Seeded like the draft above: the checkbox only renders on the last step.
+  const [consented, setConsented] = useState(loadConsent);
   const [showCamera, setShowCamera] = useState(false);
   // Nearby building footprints for the picker; refetched whenever the fix
   // changes, so they're not kept in the draft.
@@ -346,6 +371,7 @@ export default function ReportPage() {
   }
 
   async function handleSubmit() {
+    if (!consented) return;
     setSubmitting(true);
     setSubmitError('');
 
@@ -829,6 +855,7 @@ export default function ReportPage() {
                 </button>
               </div>
               <p className="text-xs text-[#55606E] mt-2 text-center">{t(locale, 'report.photo_hint')}</p>
+              <p className="text-xs text-[#232E3D] mt-2 text-center">{t(locale, 'report.photo_safety')}</p>
 
               <input
                 ref={cameraRef}
@@ -845,6 +872,26 @@ export default function ReportPage() {
                 className="hidden"
                 onChange={e => handlePhotoSelected(e.target.files?.[0] || null)}
               />
+            </div>
+
+            <div className="rounded-lg border border-[#EDEFF0] p-4 space-y-3">
+              <p className="text-sm font-semibold text-[#232E3D]">{t(locale, 'consent.title')}</p>
+              <p className="text-sm text-[#55606E]">{t(locale, 'consent.body')}</p>
+              <label className="flex items-start gap-3 text-sm text-[#232E3D] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={consented}
+                  onChange={e => {
+                    setConsented(e.target.checked);
+                    saveConsent(e.target.checked);
+                  }}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#006EB5]"
+                />
+                <span>{t(locale, 'consent.checkbox')}</span>
+              </label>
+              <Link href="/privacy" target="_blank" className="inline-block text-sm text-[#006EB5] underline">
+                {t(locale, 'consent.policy_link')}
+              </Link>
             </div>
 
             {submitError && (
@@ -878,9 +925,9 @@ export default function ReportPage() {
           ) : (
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || !consented}
               onClick={handleSubmit}
-              className="flex-1 py-3.5 px-6 rounded-lg bg-[#006EB5] text-white text-sm font-semibold hover:bg-[#005a94] transition-colors disabled:opacity-60"
+              className="flex-1 py-3.5 px-6 rounded-lg bg-[#006EB5] text-white text-sm font-semibold hover:bg-[#005a94] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {submitting ? '…' : t(locale, 'report.submit')}
             </button>

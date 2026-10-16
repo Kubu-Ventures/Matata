@@ -109,6 +109,9 @@ export default function Page() {
           <Link href="/analyst/login" style={{ color: '#7c93ab', fontSize: '.8rem' }}>
             {t(locale, 'nav.analyst_login')}
           </Link>
+          <Link href="/privacy" style={{ color: '#7c93ab', fontSize: '.8rem' }}>
+            {t(locale, 'footer.privacy')}
+          </Link>
           <a
             href="https://github.com/Kubu-Ventures/Matata"
             target="_blank"
