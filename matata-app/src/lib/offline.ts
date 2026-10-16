@@ -65,9 +65,14 @@ export function getFailedReports(): OfflineReport[] {
   return loadQueue().filter(r => !r.synced && r.lastError);
 }
 
-export function markSynced(localId: string, serverId: string) {
-  const queue = loadQueue().map(r => r.localId === localId ? { ...r, synced: true, serverId, lastError: undefined } : r);
-  saveQueue(queue);
+/**
+ * Drops a sent report from the queue. Nothing reads a synced entry, and
+ * keeping it would leave the reporter's location and photo on the phone
+ * after the privacy policy says they are gone. The caller still holds the
+ * report in memory for the photo upload that follows.
+ */
+export function markSynced(localId: string) {
+  saveQueue(loadQueue().filter(r => r.localId !== localId));
 }
 
 export function markSyncFailed(localId: string, message: string) {
@@ -125,7 +130,7 @@ async function syncPendingReports(pending: OfflineReport[]): Promise<number> {
 
       const data = await res.json();
       const serverId: string = data.id;
-      markSynced(report.localId, serverId);
+      markSynced(report.localId);
       syncedCount++;
 
       if (report.photoDataUrl && serverId) {

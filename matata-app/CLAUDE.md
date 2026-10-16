@@ -23,7 +23,7 @@ Matata is a Next.js 16 (App Router) PWA for crowdsourced crisis/disaster damage 
 
 ### Two user-facing surfaces
 
-- **Public reporter flow** (`src/app/page.tsx`, `src/app/report/*`, `src/app/login/*`): anonymous or email-verified citizens submit a multi-step damage report (location, crisis type, details, photo, review) via `src/app/report/page.tsx`.
+- **Public reporter flow** (`src/app/page.tsx`, `src/app/report/*`, `src/app/login/*`): anonymous or email-verified citizens submit a multi-step damage report (location, crisis type, details, photo, review) via `src/app/report/page.tsx`. Submit stays disabled until the reporter ticks the consent box (stored as `matata_consent` = `CONSENT_VERSION`); the policy it links to is `/privacy` (`src/app/privacy/page.tsx`, mirrors the root `PRIVACY.md`, change both together).
 - **Analyst portal** (`src/app/analyst/*`): role-gated dashboard for reviewing, merging, and exporting reports. `src/app/analyst/layout.tsx` client-side gates access by checking `getRole()` against `analyst`/`responder`/`admin` and redirects to `/analyst/login` otherwise. The `admin`-only "Accounts" nav item is filtered client-side too, there is no server-side route protection, so treat this as UX-only, not a security boundary.
 
 ### API layer (`src/lib/api.ts`)
@@ -36,7 +36,7 @@ Token, refresh token, and role are stored directly in `localStorage` (`matata_to
 
 ### Offline-first submission (`src/lib/offline.ts`)
 
-The report form works offline: if `navigator.onLine` is false at submit time, the report (plus an optional base64 photo, capped at 5MB) is pushed into a `localStorage`-backed queue (`matata_offline_queue`) instead of being POSTed. `SyncManager` (`src/components/ui/SyncManager.tsx`, mounted in the root layout) listens for the `online` event and flushes the queue via `syncQueue()`, then fires a `matata_sync` window event. `OfflineBanner` listens for `online`/`offline`/`matata_sync` to show connectivity/pending-sync status. When touching offline behavior, keep the queue schema (`OfflineReport`) and the field names sent to `/reports` in sync with `reportsApi.submit`/`uploadPhoto` in `api.ts`.
+The report form works offline: if `navigator.onLine` is false at submit time, the report (plus an optional base64 photo, capped at 5MB) is pushed into a `localStorage`-backed queue (`matata_offline_queue`) instead of being POSTed. `SyncManager` (`src/components/ui/SyncManager.tsx`, mounted in the root layout) listens for the `online` event and flushes the queue via `syncQueue()`, then fires a `matata_sync` window event. `OfflineBanner` listens for `online`/`offline`/`matata_sync` to show connectivity/pending-sync status. Sent reports are removed from the queue in `markSynced()` (the privacy policy promises nothing stays on the phone), so don't reintroduce keeping synced entries. When touching offline behavior, keep the queue schema (`OfflineReport`) and the field names sent to `/reports` in sync with `reportsApi.submit`/`uploadPhoto` in `api.ts`.
 
 ### i18n (`src/lib/i18n/`, `src/contexts/LanguageContext.tsx`)
 
