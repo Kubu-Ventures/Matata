@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import type { CrisisType } from '@/lib/types';
+import { MatataIcon } from '@/components/layout/MatataIcon';
 
 const CRISIS_TYPES: CrisisType[] = ['flood', 'earthquake', 'wildfire', 'conflict', 'other'];
 
@@ -16,7 +17,7 @@ export default function Page() {
     <main id="top" className="site-shell">
       <header className="site-header">
         <Link href="/" className="brand" aria-label="Matata home">
-          <span className="brand-mark">M</span><span>Matata</span>
+          <MatataIcon className="brand-icon" /><span>Matata</span>
         </Link>
         <nav className="site-nav" aria-label="Primary navigation">
           <a href="#how-it-works">{t(locale, 'nav.about')}</a>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { MatataIcon } from '@/components/layout/MatataIcon';
 
 const LoginForm = dynamic(
   () => import('@/components/LoginForm').then((m) => m.LoginForm),
@@ -20,9 +21,7 @@ export default function AnalystLoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-6">
-            <div className="w-9 h-9 bg-[#006EB5] rounded flex items-center justify-center">
-              <span className="text-white font-bold">M</span>
-            </div>
+            <MatataIcon className="h-10 w-auto" />
             <span className="font-semibold text-xl text-white">Matata</span>
           </div>
           <h1 className="text-2xl font-bold text-white">{t('login.analyst_title')}</h1>

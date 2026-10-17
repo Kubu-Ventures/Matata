@@ -1,11 +1,10 @@
 import Link from 'next/link';
+import { MatataIcon } from '@/components/layout/MatataIcon';
 
 export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center bg-white">
-      <div className="w-12 h-12 bg-[#006EB5] rounded flex items-center justify-center mb-6">
-        <span className="text-white font-bold text-lg">M</span>
-      </div>
+      <MatataIcon className="h-14 w-auto mb-6" title="Matata" />
       <h1 className="text-3xl font-bold text-[#232E3D] mb-2">Page not found</h1>
       <p className="text-[#55606E] mb-6">The page you&apos;re looking for doesn&apos;t exist.</p>
       <Link

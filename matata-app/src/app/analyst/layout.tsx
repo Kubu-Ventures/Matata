@@ -21,6 +21,7 @@ import { authApi, statsApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { clearPrivySession } from '@/components/PrivyClientProvider';
 import { AnalystStreamProvider, useAnalystStreamContext } from '@/contexts/AnalystStreamContext';
+import { MatataIcon } from '@/components/layout/MatataIcon';
 
 const NAV_ITEMS: {
   href: string;
@@ -137,9 +138,7 @@ function Shell({
             </button>
 
             <Link href="/" className="flex min-w-0 items-center gap-2.5">
-              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-[#006EB5]">
-                <span className="text-sm font-bold text-white">M</span>
-              </span>
+              <MatataIcon className="h-8 w-auto flex-shrink-0" />
               <span className="truncate text-base font-semibold text-white">Matata</span>
             </Link>
             <span className="hidden border-l border-white/20 pl-3 text-xs font-medium capitalize text-white/60 sm:inline">
@@ -208,9 +207,7 @@ function Shell({
       >
         <div className="flex h-14 flex-shrink-0 items-center justify-between gap-2 bg-[#232E3D] px-4">
           <Link href="/" className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-[#006EB5]">
-              <span className="text-sm font-bold text-white">M</span>
-            </span>
+            <MatataIcon className="h-8 w-auto flex-shrink-0" />
             <span className="truncate text-base font-semibold text-white">Matata</span>
           </Link>
           <button

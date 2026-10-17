@@ -7,6 +7,7 @@ import { getRole, getToken } from '@/lib/auth';
 import { formatDate, statusColors, severityColors } from '@/lib/utils';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import type { Report, PaginatedOwnReports, Role } from '@/lib/types';
+import { MatataIcon } from '@/components/layout/MatataIcon';
 
 const LIMIT = 20;
 
@@ -43,9 +44,7 @@ export default function MyReportsPage() {
       <div className="border-b border-[#EDEFF0]">
         <div className="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-[#006EB5] rounded flex items-center justify-center">
-              <span className="text-white text-xs font-bold">M</span>
-            </div>
+            <MatataIcon className="h-8 w-auto" />
             <span className="font-semibold text-[#232E3D]">Matata</span>
           </Link>
           <AccountMenu />
