@@ -57,6 +57,7 @@ body { margin: 0; background: var(--background); color: var(--foreground); font-
 .login-shell { min-height: 100vh; display: flex; align-items: stretch; justify-content: center; padding: 3rem; gap: clamp(3rem, 9vw, 9rem); }
 .login-panel { width: min(100%, 29rem); align-self: center; }
 .brand-lockup { display: inline-flex; align-items: center; gap: .75rem; margin-bottom: 4rem; }
+.brand-icon { height: 2.4rem; width: auto; flex-shrink: 0; }
 .brand-mark { width: 2.75rem; height: 2.75rem; display: grid; place-items: center; background: var(--matata-blue); color: white; font-size: 1.25rem; font-weight: 800; }
 .brand-name { color: var(--matata-navy); font-size: 1.375rem; font-weight: 700; letter-spacing: -.02em; }
 .login-heading { margin-bottom: 2rem; }

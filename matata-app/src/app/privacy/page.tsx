@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { MatataIcon } from '@/components/layout/MatataIcon';
 
 // The policy text is kept in English only and mirrors PRIVACY.md at the repo
 // root. Change both together.
@@ -83,9 +84,7 @@ export default function PrivacyPage() {
       <div className="border-b border-[#EDEFF0] bg-white">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-[#006EB5] rounded flex items-center justify-center">
-              <span className="text-white text-xs font-bold">M</span>
-            </div>
+            <MatataIcon className="h-8 w-auto" />
             <span className="font-semibold text-[#232E3D]">Matata</span>
           </Link>
           <LanguageSwitcher />

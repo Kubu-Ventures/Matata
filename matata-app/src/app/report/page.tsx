@@ -14,6 +14,7 @@ import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import QueuedConfirmation from '@/components/report/QueuedConfirmation';
 import type { BuildingCandidate, CrisisType, InfrastructureType, DamageSeverity, ElectricityStatus, HealthServicesStatus } from '@/lib/types';
+import { MatataIcon } from '@/components/layout/MatataIcon';
 
 // Leaflet touches `window` at import time; load the map in the browser only.
 const BuildingPickerMap = dynamic(() => import('@/components/report/BuildingPickerMap'), {
@@ -472,9 +473,7 @@ export default function ReportPage() {
       <div className="border-b border-[#EDEFF0] bg-white">
         <div className="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-[#006EB5] rounded flex items-center justify-center">
-              <span className="text-white text-xs font-bold">M</span>
-            </div>
+            <MatataIcon className="h-8 w-auto" />
             <span className="font-semibold text-[#232E3D]">Matata</span>
           </Link>
           <div className="flex items-center gap-3">

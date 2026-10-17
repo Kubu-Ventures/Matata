@@ -7,6 +7,7 @@ import { reportsApi } from '@/lib/api';
 import { getRole } from '@/lib/auth';
 import type { Report } from '@/lib/types';
 import { formatDate, statusColors } from '@/lib/utils';
+import { MatataIcon } from '@/components/layout/MatataIcon';
 
 const STATUS_MESSAGES: Record<string, { title: string; desc: string; icon: string }> = {
   pending: {
@@ -82,9 +83,7 @@ function ReportStatusContent({ id }: { id: string }) {
       <div className="border-b border-[#EDEFF0]">
         <div className="max-w-xl mx-auto px-4 h-14 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-[#006EB5] rounded flex items-center justify-center">
-              <span className="text-white text-xs font-bold">M</span>
-            </div>
+            <MatataIcon className="h-8 w-auto" />
             <span className="font-semibold text-[#232E3D]">Matata</span>
           </Link>
         </div>
