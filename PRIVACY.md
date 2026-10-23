@@ -7,7 +7,8 @@ you change one, change the other.
 
 ## 1. Who we are
 
-Matata is built and maintained by Origin Africa Software Limited, a company
+Matata is built and maintained by Origin Apex Solutions Africa Limited (trading
+as Origin), a company
 registered in Kenya ("we"). When we run Matata for a response, we are the
 data controller. When a partner (for example a county government or a Red
 Cross society) runs its own Matata instance, that partner is the controller

@@ -104,7 +104,8 @@ export default function PrivacyPage() {
 
         <Section title="1. Who we are">
           <p>
-            Matata is built and maintained by Origin Africa Software Limited, a company registered in Kenya
+            Matata is built and maintained by Origin Apex Solutions Africa Limited (trading as Origin), a
+            company registered in Kenya
             (&ldquo;we&rdquo;). When we run Matata for a response, we are the data controller. When a partner (for
             example a county government or a Red Cross society) runs its own Matata instance, that partner is the
             controller for its data and this policy describes the minimum the software does.
