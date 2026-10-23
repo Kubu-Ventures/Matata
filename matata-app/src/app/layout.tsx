@@ -14,9 +14,28 @@ const inter = Inter({
   display: 'swap',
 });
 
+// Link previews (LinkedIn, WhatsApp, X) need absolute URLs. The preview image
+// itself comes from app/opengraph-image.png, which Next.js turns into og:image tags.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.matatacrisis.xyz';
+const SHARE_DESCRIPTION =
+  'Report flood damage from any phone. No account, works offline, 10 languages. Every report is matched to a building, so responders see one map of the homes that need help.';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'Matata — Crisis Damage Reporting',
   description: 'Community crisis damage reporting platform. Submit damage reports with GPS location and photos to help field teams respond faster.',
+  openGraph: {
+    type: 'website',
+    siteName: 'Matata',
+    title: 'Matata — Crisis Damage Reporting',
+    description: SHARE_DESCRIPTION,
+    url: '/',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Matata — Crisis Damage Reporting',
+    description: SHARE_DESCRIPTION,
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
