@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { MapPin } from 'lucide-react';
 import { statsApi } from '@/lib/api';
 import type { HeatmapFeatureCollection } from '@/lib/types';
+import type { MapFocus } from '@/components/HeatmapMap';
 import { severityHex, severityLabels } from '@/lib/utils';
 import { Alert, EmptyState, PageContainer, PageHeader, Spinner } from '@/components/analyst/ui';
 
@@ -21,10 +22,24 @@ const HeatmapMap = dynamic(() => import('@/components/HeatmapMap'), {
   ),
 });
 
+function readFocusFromUrl(): MapFocus | null {
+  if (typeof window === 'undefined') return null;
+  const q = new URLSearchParams(window.location.search);
+  const lat = Number(q.get('lat'));
+  const lng = Number(q.get('lng'));
+  if (!q.get('lat') || !q.get('lng') || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng, buildingId: q.get('building') };
+}
+
 export default function HeatmapPage() {
   const [data, setData] = useState<HeatmapFeatureCollection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // ?lat=&lng=&building= (from a report page or a building popup) zooms the
+  // map onto that building. Read from window.location rather than
+  // useSearchParams, which would need a Suspense boundary for prerendering;
+  // the map only renders client-side after data loads, so markup matches.
+  const [focus] = useState<MapFocus | null>(readFocusFromUrl);
 
   useEffect(() => {
     statsApi
@@ -59,7 +74,7 @@ export default function HeatmapPage() {
           ) : !data || pointCount === 0 ? (
             <EmptyState icon={MapPin} title="No geolocated reports to display yet." className="h-full" />
           ) : (
-            <HeatmapMap data={data} />
+            <HeatmapMap key={focus ? `${focus.lat},${focus.lng}` : 'all'} data={data} focus={focus} />
           )}
         </div>
 
@@ -72,7 +87,7 @@ export default function HeatmapPage() {
               {severityLabels[sev]}
             </span>
           ))}
-          <span className="sm:ml-auto">Dots: each report. Glow: where reports cluster.</span>
+          <span className="sm:ml-auto">Dots: each report. Glow: where reports cluster. Zoom in for damaged building outlines; click one for directions.</span>
         </div>
       </div>
     </PageContainer>
