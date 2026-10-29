@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { analystApi } from '@/lib/api';
 import type { AnalystReportDetail, DamageSeverity } from '@/lib/types';
 import { formatDate, severityColors, statusColors, priorityColors } from '@/lib/utils';
+import { damageMapUrl, directionsUrl, footprintCentre } from '@/lib/mapLinks';
 import { Check, ChevronRight, ExternalLink, MapPinOff, TriangleAlert, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -224,6 +225,8 @@ export default function AnalystReportDetailPage({
         report.debris_clearing_needed === true ? 'Yes' : report.debris_clearing_needed === false ? 'No' : '—',
     },
   ];
+
+  const buildingCentre = footprintCentre(report.footprint_geojson);
 
   return (
     <PageContainer>
@@ -563,11 +566,29 @@ export default function AnalystReportDetailPage({
                     lng={report.lng}
                     accuracyM={report.gps_accuracy_m}
                   />
-                  {report.lat !== null && (
-                    <p className="mt-1 text-[11px] text-[#55606E]">
-                      Red dot: the reporter&apos;s GPS fix
-                      {report.gps_accuracy_m !== null && <> (circle: ±{Math.round(report.gps_accuracy_m)} m)</>}
-                    </p>
+                  <p className="mt-1 text-[11px] text-[#55606E]">
+                    Blue with dark outline: the matched building.
+                    {report.lat !== null && (
+                      <>
+                        {' '}Red dot: the reporter&apos;s GPS position
+                        {report.gps_accuracy_m !== null && <> (circle: ±{Math.round(report.gps_accuracy_m)} m)</>}.
+                      </>
+                    )}
+                  </p>
+                  {buildingCentre && (
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium">
+                      <Link href={damageMapUrl(buildingCentre[0], buildingCentre[1], report.building_id)} className="text-[#006EB5] hover:underline">
+                        Show on damage map →
+                      </Link>
+                      <a
+                        href={directionsUrl(buildingCentre[0], buildingCentre[1])}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#006EB5] hover:underline"
+                      >
+                        Directions (Google Maps) ↗
+                      </a>
+                    </div>
                   )}
                 </div>
               )}

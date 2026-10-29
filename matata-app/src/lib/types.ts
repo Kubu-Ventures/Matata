@@ -230,6 +230,28 @@ export interface HeatmapFeatureCollection {
   features: HeatmapFeature[];
 }
 
+/** One damaged building on the map: its footprint, coloured by worst live report. */
+export interface DamagedBuildingFeature {
+  type: 'Feature';
+  geometry: { type: 'Polygon'; coordinates: number[][][] };
+  properties: {
+    building_id: string;
+    external_id: string;
+    severity: 'minimal' | 'partial' | 'destroyed';
+    report_count: number;
+    last_report_at: string | null;
+    latest_report_id: string;
+    /** Building centroid, for directions links. */
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface DamagedBuildingCollection {
+  type: 'FeatureCollection';
+  features: DamagedBuildingFeature[];
+}
+
 // ---------------------------------------------------------------------------
 // Export jobs — async export polling
 // ---------------------------------------------------------------------------

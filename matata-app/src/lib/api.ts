@@ -12,6 +12,7 @@ import type {
   AIAccuracyResponse,
   StatsSummaryResponse,
   HeatmapFeatureCollection,
+  DamagedBuildingCollection,
   BuildingMatchResponse,
   ExportFormat,
   ExportJobResponse,
@@ -168,6 +169,8 @@ export const analystApi = {
   listReports: (params: ReportListParams = {}) =>
     request<PaginatedReports>(`/analyst/reports${toQueryString(params)}`),
   getReport: (id: string) => request<AnalystReportDetail>(`/analyst/reports/${id}`),
+  /** Footprints of every building with a live report, coloured by worst severity. */
+  damagedBuildings: () => request<DamagedBuildingCollection>('/analyst/damaged-buildings'),
   /**
    * `photo_url` on the report detail is an object storage key, not a
    * fetchable URL, and this endpoint requires the same Authorization header

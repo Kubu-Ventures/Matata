@@ -14,14 +14,18 @@ interface MatchedBuildingMapProps {
   accuracyM: number | null;
 }
 
-/** Zoom to show the footprint and the GPS fix together. */
+/**
+ * Zoom to show the footprint and the GPS fix together, but no closer than
+ * street level, so the surrounding paths and neighbouring buildings on the
+ * base map make it clear which building this is.
+ */
 function FitToFootprint({ rings, fix }: { rings: [number, number][][]; fix: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
     const bounds = L.latLngBounds([]);
     rings.forEach(ring => ring.forEach(pt => bounds.extend(pt)));
     if (fix) bounds.extend(fix);
-    if (bounds.isValid()) map.fitBounds(bounds, { padding: [24, 24], maxZoom: 19 });
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [48, 48], maxZoom: 18 });
   }, [map, rings, fix]);
   return null;
 }
@@ -40,7 +44,7 @@ export default function MatchedBuildingMap({ footprintGeojson, lat, lng, accurac
     <div
       role="img"
       aria-label="Map of the matched building outline and the reporter's GPS position"
-      className="w-full h-48 rounded-lg overflow-hidden border border-[#EDEFF0]"
+      className="w-full h-72 rounded-lg overflow-hidden border border-[#EDEFF0]"
     >
       <MapContainer center={center} zoom={18} maxZoom={19} scrollWheelZoom={false} className="w-full h-full">
         <TileLayer
@@ -50,7 +54,7 @@ export default function MatchedBuildingMap({ footprintGeojson, lat, lng, accurac
         />
         <Polygon
           positions={rings}
-          pathOptions={{ color: '#006EB5', weight: 2, fillColor: '#006EB5', fillOpacity: 0.35, interactive: false }}
+          pathOptions={{ color: '#232E3D', weight: 3, fillColor: '#006EB5', fillOpacity: 0.5, interactive: false }}
         />
         {fix && accuracyM !== null && (
           <Circle
