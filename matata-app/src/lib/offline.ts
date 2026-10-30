@@ -24,6 +24,7 @@ export interface OfflineReport {
     building_not_on_map?: boolean;
     electricity_status?: string;
     health_services_status?: string;
+    medical_help_needed?: string;
     most_pressing_needs?: string;
     debris_clearing_needed?: boolean;
     offline_queued_at: string;

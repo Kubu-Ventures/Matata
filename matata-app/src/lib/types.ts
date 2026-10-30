@@ -1,11 +1,12 @@
 export type Role = 'anonymous_reporter' | 'reporter' | 'analyst' | 'responder' | 'admin';
-export type CrisisType = 'flood' | 'earthquake' | 'conflict' | 'wildfire' | 'other';
+export type CrisisType = 'flood' | 'earthquake' | 'conflict' | 'fire' | 'wildfire' | 'other';
 export type InfrastructureType = 'residential' | 'commercial' | 'government' | 'utilities' | 'transport' | 'community';
 export type DamageSeverity = 'minimal' | 'partial' | 'destroyed';
 export type ReportStatus = 'pending' | 'verified' | 'rejected' | 'duplicate' | 'pending_merge_review';
 export type PhotoStatus = 'pending' | 'processing' | 'accepted' | 'rejected' | 'insufficient_quality' | 'ai_processing_failed';
 export type ElectricityStatus = 'functional' | 'non_functional' | 'unknown';
 export type HealthServicesStatus = 'accessible' | 'inaccessible' | 'unknown';
+export type MedicalHelpNeeded = 'urgent' | 'not_urgent' | 'none';
 export type ReviewPriority = 'critical' | 'high' | 'normal' | 'low';
 
 export interface AuthTokens {
@@ -27,7 +28,9 @@ export interface Report {
   gps_accuracy_m: number | null;
   landmark_description: string | null;
   electricity_status: ElectricityStatus | null;
+  /** Legacy question, no longer asked; kept for older reports. */
   health_services_status: HealthServicesStatus | null;
+  medical_help_needed?: MedicalHelpNeeded | null;
   most_pressing_needs: string | null;
   debris_clearing_needed: boolean | null;
   photo_url: string | null;
@@ -38,6 +41,15 @@ export interface Report {
   ai_divergence?: boolean;
   analyst_severity_override?: DamageSeverity | null;
   review_priority?: ReviewPriority;
+  /** An analyst's question to the reporter, and the reporter's answer. A
+   *  report needs an answer when info_requested_at is set and
+   *  info_responded_at is null. */
+  info_request_message?: string | null;
+  info_requested_at?: string | null;
+  reporter_followup?: string | null;
+  info_responded_at?: string | null;
+  /** Registered field reporter code (e.g. KIB-01). Analyst views only. */
+  field_reporter_code?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -69,9 +81,31 @@ export interface ReportSubmitMetadata {
   building_not_on_map?: boolean;
   electricity_status?: ElectricityStatus;
   health_services_status?: HealthServicesStatus;
+  medical_help_needed?: MedicalHelpNeeded;
   most_pressing_needs?: string;
   debris_clearing_needed?: boolean;
   offline_queued_at?: string;
+}
+
+/** A hospital, clinic or health centre near a point (GET /gis/health-facilities/nearby). */
+export interface HealthFacility {
+  name: string | null;
+  facility_type: 'hospital' | 'clinic' | 'health_centre' | 'doctors';
+  lat: number;
+  lng: number;
+  distance_m: number;
+  phone?: string | null;
+  opening_hours?: string | null;
+}
+
+/** Report counts per field reporter code (GET /analyst/field-reporters/summary). */
+export interface FieldReporterSummaryItem {
+  code: string;
+  total: number;
+  verified: number;
+  pending: number;
+  rejected: number;
+  duplicate: number;
 }
 
 /** One of the mapped buildings nearest a GPS fix (GET /gis/building/match). */

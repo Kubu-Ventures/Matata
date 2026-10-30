@@ -19,6 +19,8 @@ import type {
   ExportJobStatusResponse,
   Role,
   AdminAccount,
+  FieldReporterSummaryItem,
+  HealthFacility,
 } from './types';
 import { clearAuth, getRefreshToken, getRole, saveAuth } from './auth';
 
@@ -147,6 +149,9 @@ export const reportsApi = {
   get: (id: string) => request<Report>(`/reports/${id}`),
   uploadPhoto: (id: string, formData: FormData) =>
     request<{ id: string; photo_url: string; status: string }>(`/reports/${id}/photo`, { method: 'PATCH', body: formData }),
+  /** Answer an analyst's request for more information. 409 if nothing is open. */
+  addInfo: (id: string, text: string) =>
+    request<Report>(`/reports/${id}/additional-info`, { method: 'POST', body: JSON.stringify({ text }) }),
   /** List the caller's own submitted reports, newest first. */
   list: (page = 1, limit = 20) =>
     request<PaginatedOwnReports>(`/reports?page=${page}&limit=${limit}`),
@@ -168,7 +173,11 @@ function toQueryString<T extends object>(
 export const analystApi = {
   listReports: (params: ReportListParams = {}) =>
     request<PaginatedReports>(`/analyst/reports${toQueryString(params)}`),
-  getReport: (id: string) => request<AnalystReportDetail>(`/analyst/reports/${id}`),
+  /** The backend returns notes as `analyst_notes`; expose them as `notes`. */
+  getReport: (id: string) =>
+    request<AnalystReportDetail & { analyst_notes?: AnalystReportDetail['notes'] }>(`/analyst/reports/${id}`).then(
+      r => ({ ...r, notes: r.notes ?? r.analyst_notes ?? [] }),
+    ),
   /** Footprints of every building with a live report, coloured by worst severity. */
   damagedBuildings: () => request<DamagedBuildingCollection>('/analyst/damaged-buildings'),
   /**
@@ -204,6 +213,29 @@ export const analystApi = {
   rejectMerge: (id: string) =>
     request<RejectMergeResponse>(`/analyst/reports/${id}/reject-merge`, { method: 'POST' }),
 
+  /** Ask the reporter for more detail; shown to them in My reports. */
+  requestInfo: (id: string, message: string) =>
+    request<{ id: string; info_request_message: string; info_requested_at: string }>(
+      `/analyst/reports/${id}/request-info`,
+      { method: 'POST', body: JSON.stringify({ message }) },
+    ),
+  /** Report counts per field reporter code, for paying pilot reporters. */
+  fieldReporterSummary: (params: { date_from?: string; date_to?: string } = {}) =>
+    request<{ date_from: string | null; date_to: string | null; items: FieldReporterSummaryItem[] }>(
+      `/analyst/field-reporters/summary${toQueryString(params)}`,
+    ),
+  /** Same summary as a CSV file. */
+  fieldReporterSummaryCsv: async (params: { date_from?: string; date_to?: string } = {}): Promise<Blob> => {
+    const res = await fetchWithAuthRetry(
+      `/analyst/field-reporters/summary${toQueryString({ ...params, format: 'csv' })}`,
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw { status: res.status, message: err.error || res.statusText };
+    }
+    return res.blob();
+  },
+
   // Feature 3, AI accuracy / active-learning calibration
   getAIAccuracy: () => request<AIAccuracyResponse>('/analyst/ai-accuracy'),
 };
@@ -212,6 +244,11 @@ export const gisApi = {
   /** Best footprint match for a GPS fix, plus up to three nearby candidates. */
   matchBuilding: (lat: number, lng: number, accuracy_m?: number | null) =>
     request<BuildingMatchResponse>(`/gis/building/match${toQueryString({ lat, lng, accuracy_m })}`),
+  /** Nearest hospitals, clinics and health centres (OpenStreetMap), nearest first. */
+  nearbyHealthFacilities: (lat: number, lng: number, limit = 3) =>
+    request<{ items: HealthFacility[]; attribution: string }>(
+      `/gis/health-facilities/nearby${toQueryString({ lat, lng, limit })}`,
+    ),
 };
 
 export const statsApi = {

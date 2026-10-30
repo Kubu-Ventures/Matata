@@ -37,6 +37,7 @@ export const crisisLabels: Record<string, string> = {
   flood: 'Flood',
   earthquake: 'Earthquake',
   conflict: 'Conflict',
+  fire: 'Fire',
   wildfire: 'Wildfire',
   other: 'Other',
 };

@@ -13,7 +13,7 @@ import { t } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import QueuedConfirmation from '@/components/report/QueuedConfirmation';
-import type { BuildingCandidate, CrisisType, InfrastructureType, DamageSeverity, ElectricityStatus, HealthServicesStatus } from '@/lib/types';
+import type { BuildingCandidate, CrisisType, InfrastructureType, DamageSeverity, ElectricityStatus, HealthFacility, MedicalHelpNeeded } from '@/lib/types';
 import { MatataIcon } from '@/components/layout/MatataIcon';
 
 // Leaflet touches `window` at import time; load the map in the browser only.
@@ -37,7 +37,7 @@ type FormData = {
   infrastructure_type: InfrastructureType | '';
   damage_severity: DamageSeverity | '';
   electricity_status: ElectricityStatus | '';
-  health_services_status: HealthServicesStatus | '';
+  medical_help_needed: MedicalHelpNeeded | '';
   most_pressing_needs: string;
   debris_clearing_needed: boolean | null;
 };
@@ -114,10 +114,106 @@ const DEFAULT_FORM: FormData = {
   infrastructure_type: '',
   damage_severity: '',
   electricity_status: '',
-  health_services_status: '',
+  medical_help_needed: '',
   most_pressing_needs: '',
   debris_clearing_needed: null,
 };
+
+/** The three health facilities nearest the report location, with the
+ *  emergency numbers. Shown when someone needs medical help. */
+function NearbyFacilities({
+  locale,
+  lat,
+  lng,
+  online,
+}: {
+  locale: Parameters<typeof t>[0];
+  lat: number | null;
+  lng: number | null;
+  online: boolean;
+}) {
+  // Results are keyed by location, so a stale answer is never shown and no
+  // state has to be reset when the location changes.
+  const key = lat !== null && lng !== null && online ? `${lat},${lng}` : null;
+  const [result, setResult] = useState<{
+    key: string;
+    items: HealthFacility[] | null;
+    attribution: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (key === null || lat === null || lng === null) return;
+    let cancelled = false;
+    gisApi
+      .nearbyHealthFacilities(lat, lng, 3)
+      .then(res => {
+        if (!cancelled) setResult({ key, items: res.items, attribution: res.attribution });
+      })
+      .catch(() => {
+        if (!cancelled) setResult({ key, items: null, attribution: '' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key, lat, lng]);
+
+  const current = result && result.key === key ? result : null;
+  const loading = key !== null && current === null;
+  const items = current?.items ?? null;
+  const attribution = current?.attribution ?? '';
+
+  const formatDistance = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`);
+
+  return (
+    <div className="mt-3 rounded-lg border border-[#EDEFF0] p-3 space-y-2">
+      {lat !== null && online && (
+        <>
+          <p className="text-sm font-medium text-[#232E3D]">{t(locale, 'report.facilities_title')}</p>
+          {loading ? (
+            <p className="text-xs text-[#55606E]">{t(locale, 'report.facilities_loading')}</p>
+          ) : items && items.length > 0 ? (
+            <ul className="space-y-2">
+              {items.map(f => (
+                <li key={`${f.lat},${f.lng}`} className="flex items-start justify-between gap-3 text-sm">
+                  <div>
+                    <div className="font-medium text-[#232E3D]">
+                      {f.name || t(locale, 'facility.unnamed')}
+                    </div>
+                    <div className="text-xs text-[#55606E]">
+                      {t(locale, `facility.${f.facility_type}` as Parameters<typeof t>[1])} · {formatDistance(f.distance_m)}
+                      {f.phone && (
+                        <>
+                          {' · '}
+                          <a href={`tel:${f.phone.replace(/\s+/g, '')}`} className="text-[#006EB5] hover:underline">
+                            {f.phone}
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-xs font-medium text-[#006EB5] hover:underline"
+                  >
+                    {t(locale, 'report.facilities_directions')}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : items ? (
+            <p className="text-xs text-[#55606E]">{t(locale, 'report.facilities_none')}</p>
+          ) : null}
+          {attribution && items && items.length > 0 && (
+            <p className="text-[10px] text-[#55606E]">{attribution}</p>
+          )}
+        </>
+      )}
+      <p className="text-xs text-[#232E3D]">{t(locale, 'report.facilities_safety')}</p>
+    </div>
+  );
+}
 
 export default function ReportPage() {
   const router = useRouter();
@@ -394,7 +490,7 @@ export default function ReportPage() {
       ...(form.lat !== null && form.building_choice === BUILDING_MISSING ? { building_not_on_map: true } : {}),
       ...(form.landmark_description ? { landmark_description: form.landmark_description } : {}),
       ...(form.electricity_status ? { electricity_status: form.electricity_status } : {}),
-      ...(form.health_services_status ? { health_services_status: form.health_services_status } : {}),
+      ...(form.medical_help_needed ? { medical_help_needed: form.medical_help_needed } : {}),
       ...(form.most_pressing_needs ? { most_pressing_needs: form.most_pressing_needs } : {}),
       ...(form.debris_clearing_needed !== null ? { debris_clearing_needed: form.debris_clearing_needed } : {}),
     };
@@ -450,7 +546,7 @@ export default function ReportPage() {
   }
 
   const crisisIcons: Record<CrisisType, string> = {
-    flood: '🌊', earthquake: '🏚️', conflict: '⚠️', wildfire: '🔥', other: '❓',
+    flood: '🌊', fire: '🔥', earthquake: '🏚️', conflict: '⚠️', wildfire: '🌲', other: '❓',
   };
 
   if (queuedRef) {
@@ -619,7 +715,7 @@ export default function ReportPage() {
             <div>
               <p className="text-sm font-medium text-[#232E3D] mb-3">{t(locale, 'report.crisis_type_label')}</p>
               <div className="grid grid-cols-2 gap-3">
-                {(['flood', 'earthquake', 'conflict', 'wildfire', 'other'] as CrisisType[]).map(type => (
+                {(['flood', 'fire', 'earthquake', 'conflict', 'wildfire', 'other'] as CrisisType[]).map(type => (
                   <button
                     key={type}
                     type="button"
@@ -637,6 +733,11 @@ export default function ReportPage() {
                   </button>
                 ))}
               </div>
+              {form.crisis_type === 'fire' && (
+                <div role="alert" className="mt-3 rounded-lg border border-[#EE402D]/40 bg-[#EE402D]/10 p-3 text-sm font-medium text-[#232E3D]">
+                  {t(locale, 'report.fire_warning')}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -708,18 +809,34 @@ export default function ReportPage() {
               </select>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-[#232E3D]">{t(locale, 'report.health_label')}</label>
-              <select
-                className="block w-full rounded border border-[#EDEFF0] px-3 py-2.5 text-sm text-[#232E3D] focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5] bg-white"
-                value={form.health_services_status}
-                onChange={e => setField('health_services_status', e.target.value as HealthServicesStatus)}
-              >
-                <option value="">Select...</option>
-                {(['accessible', 'inaccessible', 'unknown'] as HealthServicesStatus[]).map(s => (
-                  <option key={s} value={s}>{t(locale, `health.${s}` as Parameters<typeof t>[1])}</option>
+            <div>
+              <p className="text-sm font-medium text-[#232E3D] mb-2">{t(locale, 'report.medical_label')}</p>
+              <div className="flex flex-wrap gap-2">
+                {(['urgent', 'not_urgent', 'none'] as MedicalHelpNeeded[]).map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setField('medical_help_needed', val)}
+                    className={`px-4 py-2 rounded border text-sm font-medium transition-colors ${
+                      form.medical_help_needed === val
+                        ? val === 'urgent'
+                          ? 'border-[#EE402D] bg-[#EE402D] text-white'
+                          : 'border-[#006EB5] bg-[#006EB5] text-white'
+                        : 'border-[#EDEFF0] text-[#232E3D] hover:border-[#B5D5F5]'
+                    }`}
+                  >
+                    {t(locale, `medical.${val}` as Parameters<typeof t>[1])}
+                  </button>
                 ))}
-              </select>
+              </div>
+              {form.medical_help_needed === 'urgent' && (
+                <p role="alert" className="mt-3 text-sm font-semibold text-[#EE402D]">
+                  {t(locale, 'report.medical_emergency')}
+                </p>
+              )}
+              {(form.medical_help_needed === 'urgent' || form.medical_help_needed === 'not_urgent') && (
+                <NearbyFacilities locale={locale} lat={form.lat} lng={form.lng} online={isOnline} />
+              )}
             </div>
 
             <div className="space-y-1">

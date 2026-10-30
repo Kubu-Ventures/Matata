@@ -8,6 +8,8 @@ import { formatDate, statusColors, severityColors } from '@/lib/utils';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import type { Report, PaginatedOwnReports, Role } from '@/lib/types';
 import { MatataIcon } from '@/components/layout/MatataIcon';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { t } from '@/lib/i18n';
 
 const LIMIT = 20;
 
@@ -17,6 +19,7 @@ export default function MyReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [role, setRole] = useState<Role | null>(null);
+  const { locale } = useLanguage();
 
   useEffect(() => {
     setRole(getRole());
@@ -99,11 +102,18 @@ export default function MyReportsPage() {
                     <span className="font-mono text-xs text-[#55606E]">
                       {report.id.slice(0, 8).toUpperCase()}
                     </span>
-                    <span
-                      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${statusColors[report.status]}`}
-                    >
-                      {report.status.replace(/_/g, ' ')}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {report.info_requested_at && !report.info_responded_at && (
+                        <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold bg-[#FBC412]/20 text-[#232E3D] border border-[#FBC412]/60">
+                          {t(locale, 'info.needed_badge')}
+                        </span>
+                      )}
+                      <span
+                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${statusColors[report.status]}`}
+                      >
+                        {report.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-[#232E3D] capitalize">
