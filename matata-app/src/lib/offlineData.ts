@@ -127,7 +127,8 @@ function onUnmeteredLink(): boolean {
 }
 
 // Downloads run one batch after another so two callers never fetch the same
-// tile at once; inside a batch, two tiles download in parallel.
+// tile at once; inside a batch, two tiles download in parallel. Rejects if
+// any tile failed, so callers know to try again later.
 let chain: Promise<void> = Promise.resolve();
 
 function downloadTiles(tiles: [number, number][]): Promise<void> {
@@ -137,6 +138,7 @@ function downloadTiles(tiles: [number, number][]): Promise<void> {
       const saved = await getItem<SavedTile>(tileKey(iy, ix));
       if (!saved || Date.now() - saved.fetchedAt > TILE_MAX_AGE_MS) queue.push([iy, ix]);
     }
+    let failed = 0;
     const worker = async () => {
       for (let next = queue.shift(); next; next = queue.shift()) {
         const [iy, ix] = next;
@@ -152,11 +154,12 @@ function downloadTiles(tiles: [number, number][]): Promise<void> {
           );
           await setItem<SavedTile>(tileKey(iy, ix), { fetchedAt: Date.now(), items: res.items });
         } catch {
-          /* offline or server busy: try again next time */
+          failed++; // offline or server busy: try again next time
         }
       }
     };
     await Promise.all([worker(), worker()]);
+    if (failed) throw new Error(`${failed} building tiles failed to download`);
   };
   chain = chain.then(run, run);
   return chain;
@@ -182,12 +185,18 @@ function tilesInBox([minLat, minLng, maxLat, maxLng]: [number, number, number, n
 }
 
 const RISK_AREA_RADIUS_M = 30_000;
+// Without a location, every risk area is saved as long as they add up to at
+// most this many tiles (about 7.5 km x 7.5 km of a dense area).
+const RISK_TILE_BUDGET_NO_LOCATION = 225;
 
 /**
  * Save the areas this phone should have in advance: the reporter's home
- * areas always (a field reporter's whole patch), and risk areas within
- * 30 km of the phone when on Wi-Fi. Asks the browser to keep the data
- * through storage clean-ups.
+ * areas (a field reporter's whole patch), and risk areas within 30 km of
+ * the phone, or all of them if the location is unknown and they are small.
+ * Skipped in data-saver mode. An area is small (a few hundred KB), so this
+ * runs on mobile data too: many phones, iPhones included, don't say whether
+ * they are on Wi-Fi. Asks the browser to keep the data through storage
+ * clean-ups. Rejects if anything failed, so the caller retries later.
  */
 export async function syncOfflineAreas(lat: number | null, lng: number | null): Promise<void> {
   const { areas, home_area_ids } = await gisApi.offlineAreas();
@@ -197,15 +206,21 @@ export async function syncOfflineAreas(lat: number | null, lng: number | null): 
     /* not supported: data may be evicted under storage pressure */
   }
   const home = areas.filter(a => home_area_ids.includes(a.id));
-  for (const area of home) await downloadTiles(tilesInBox(area.bbox));
+  let failed = false;
+  for (const area of home) await downloadTiles(tilesInBox(area.bbox)).catch(() => (failed = true));
 
-  if (lat === null || lng === null || !onUnmeteredLink() || connection().saveData) return;
-  const risk = areas.filter(a => {
-    if (home_area_ids.includes(a.id)) return false;
-    const [minLat, minLng, maxLat, maxLng] = a.bbox;
-    return haversineM(lat, lng, (minLat + maxLat) / 2, (minLng + maxLng) / 2) <= RISK_AREA_RADIUS_M;
-  });
-  for (const area of risk) await downloadTiles(tilesInBox(area.bbox));
+  let risk = connection().saveData ? [] : areas.filter(a => !home_area_ids.includes(a.id));
+  if (lat !== null && lng !== null) {
+    risk = risk.filter(a => {
+      const [minLat, minLng, maxLat, maxLng] = a.bbox;
+      return haversineM(lat, lng, (minLat + maxLat) / 2, (minLng + maxLng) / 2) <= RISK_AREA_RADIUS_M;
+    });
+  } else {
+    const total = risk.reduce((n, a) => n + tilesInBox(a.bbox).length, 0);
+    if (total > RISK_TILE_BUDGET_NO_LOCATION) risk = [];
+  }
+  for (const area of risk) await downloadTiles(tilesInBox(area.bbox)).catch(() => (failed = true));
+  if (failed) throw new Error('some offline area tiles failed to download');
 }
 
 // Mirrors app/services/gis_service.py so offline suggestions match online ones.
