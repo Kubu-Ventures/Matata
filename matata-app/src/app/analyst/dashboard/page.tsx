@@ -48,6 +48,26 @@ function AiConfidence({ report }: { report: ReportListItem }) {
   );
 }
 
+function InfoBadges({ report }: { report: ReportListItem }) {
+  return (
+    <>
+      {report.medical_help_needed === 'urgent' && (
+        <Chip className="border border-red-200 bg-red-50 normal-case text-red-700">Medical help</Chip>
+      )}
+      {report.info_responded_at ? (
+        <Chip className="border border-[#B5D5F5] bg-[#B5D5F5]/30 normal-case text-[#006EB5]">Reply received</Chip>
+      ) : report.info_requested_at ? (
+        <Chip className="border border-[#FBC412]/60 bg-[#FBC412]/10 normal-case text-[#232E3D]">Waiting for reply</Chip>
+      ) : null}
+      {report.field_reporter_code && (
+        <Chip className="border border-[#EDEFF0] bg-white font-mono normal-case text-[#232E3D]">
+          {report.field_reporter_code}
+        </Chip>
+      )}
+    </>
+  );
+}
+
 export default function AnalystDashboardPage() {
   const [data, setData] = useState<PaginatedReports | null>(null);
   const [page, setPage] = useState(1);
@@ -150,6 +170,7 @@ export default function AnalystDashboardPage() {
               { value: 'flood', label: 'Flood' },
               { value: 'earthquake', label: 'Earthquake' },
               { value: 'conflict', label: 'Conflict' },
+              { value: 'fire', label: 'Fire' },
               { value: 'wildfire', label: 'Wildfire' },
               { value: 'other', label: 'Other' },
             ]}
@@ -320,7 +341,10 @@ export default function AnalystDashboardPage() {
                         <Chip className={severityColors[report.damage_severity]}>{report.damage_severity}</Chip>
                       </td>
                       <td className="px-4 py-3">
-                        <Chip className={statusColors[report.status]}>{report.status.replace(/_/g, ' ')}</Chip>
+                        <div className="flex flex-wrap gap-1">
+                          <Chip className={statusColors[report.status]}>{report.status.replace(/_/g, ' ')}</Chip>
+                          <InfoBadges report={report} />
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-[#55606E]">{formatDate(report.created_at)}</td>
                       <td className="px-4 py-3 text-[#55606E]">
@@ -354,6 +378,7 @@ export default function AnalystDashboardPage() {
                       </Chip>
                       <Chip className={severityColors[report.damage_severity]}>{report.damage_severity}</Chip>
                       <Chip className={statusColors[report.status]}>{report.status.replace(/_/g, ' ')}</Chip>
+                      <InfoBadges report={report} />
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-3 text-xs text-[#55606E]">
                       <span>{formatDate(report.created_at)}</span>

@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Download,
   Gauge,
+  IdCard,
   GitMerge,
   LayoutDashboard,
   LogOut,
@@ -35,6 +36,7 @@ const NAV_ITEMS: {
   { href: '/analyst/heatmap', label: 'Heatmap', icon: MapIcon },
   { href: '/analyst/merge-review', label: 'Merge Review', icon: GitMerge, badgeKey: 'pending_duplicate_count' },
   { href: '/analyst/ai-accuracy', label: 'AI Accuracy', icon: Gauge },
+  { href: '/analyst/field-reporters', label: 'Field Reporters', icon: IdCard },
   { href: '/analyst/export', label: 'Export', icon: Download },
   { href: '/analyst/admin', label: 'Accounts', icon: Users, adminOnly: true },
 ];

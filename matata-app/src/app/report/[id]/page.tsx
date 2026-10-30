@@ -8,6 +8,9 @@ import { getRole } from '@/lib/auth';
 import type { Report } from '@/lib/types';
 import { formatDate, statusColors } from '@/lib/utils';
 import { MatataIcon } from '@/components/layout/MatataIcon';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { t } from '@/lib/i18n';
+import { compressPhoto } from '@/lib/image';
 
 const STATUS_MESSAGES: Record<string, { title: string; desc: string; icon: string }> = {
   pending: {
@@ -36,6 +39,98 @@ const STATUS_MESSAGES: Record<string, { title: string; desc: string; icon: strin
     icon: '🔍',
   },
 };
+
+/** The analyst's question and the reporter's answer. Shows a reply form
+ *  while the question is open; the original report is never edited. */
+function InfoRequestPanel({ report, onUpdated }: { report: Report; onUpdated: (r: Report) => void }) {
+  const { locale } = useLanguage();
+  const [text, setText] = useState('');
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+  const open = !report.info_responded_at;
+
+  async function send() {
+    if (!text.trim()) return;
+    setSending(true);
+    setError('');
+    try {
+      if (photo) {
+        const fd = new FormData();
+        const compressed = await compressPhoto(photo).catch(() => photo);
+        fd.append('photo', compressed, 'photo.jpg');
+        await reportsApi.uploadPhoto(report.id, fd);
+      }
+      const updated = await reportsApi.addInfo(report.id, text.trim());
+      onUpdated(updated);
+      setSent(true);
+    } catch {
+      setError(t(locale, 'info.error'));
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div
+      className={`rounded-lg p-6 border ${
+        open ? 'border-[#FBC412]/60 bg-[#FBC412]/10' : 'border-[#EDEFF0]'
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <h3 className="font-semibold text-[#232E3D]">{t(locale, 'info.title')}</h3>
+        <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold bg-white border border-[#EDEFF0] text-[#232E3D]">
+          {open ? t(locale, 'info.needed_badge') : t(locale, 'info.answered_badge')}
+        </span>
+      </div>
+      <p className="text-sm text-[#232E3D] whitespace-pre-line">{report.info_request_message}</p>
+
+      {open ? (
+        <div className="mt-4 space-y-3">
+          <label className="block text-sm font-medium text-[#232E3D]" htmlFor="info-reply">
+            {t(locale, 'info.reply_label')}
+          </label>
+          <textarea
+            id="info-reply"
+            rows={3}
+            maxLength={2000}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder={t(locale, 'info.reply_placeholder')}
+            className="block w-full rounded border border-[#EDEFF0] bg-white px-3 py-2 text-sm text-[#232E3D] placeholder:text-[#55606E] focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
+          />
+          <label className="block text-sm text-[#006EB5] font-medium cursor-pointer">
+            📷 {t(locale, 'info.add_photo')}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={e => setPhoto(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          {photo && <p className="text-xs text-[#55606E]">{photo.name}</p>}
+          {error && <p className="text-sm text-[#EE402D]">{error}</p>}
+          <button
+            type="button"
+            onClick={send}
+            disabled={sending || !text.trim()}
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-[#006EB5] text-white text-sm font-medium rounded hover:bg-[#005a94] disabled:opacity-50 transition-colors"
+          >
+            {sending ? t(locale, 'info.sending') : t(locale, 'info.send')}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-4">
+          {sent && <p className="text-sm text-[#232E3D] mb-2">{t(locale, 'info.sent')}</p>}
+          <p className="text-xs font-medium text-[#55606E]">{t(locale, 'info.your_answer')}</p>
+          <p className="text-sm text-[#232E3D] whitespace-pre-line">{report.reporter_followup}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ReportStatusContent({ id }: { id: string }) {
   const searchParams = useSearchParams();
@@ -123,6 +218,10 @@ function ReportStatusContent({ id }: { id: string }) {
             </div>
           </div>
         </div>
+
+        {report.info_requested_at && (
+          <InfoRequestPanel report={report} onUpdated={setReport} />
+        )}
 
         <div className="border border-[#EDEFF0] rounded-lg p-6">
           <h3 className="font-semibold text-[#232E3D] mb-4 text-sm uppercase tracking-wide">

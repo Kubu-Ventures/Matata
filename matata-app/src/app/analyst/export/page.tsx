@@ -183,6 +183,7 @@ export default function ExportPage() {
                     { value: 'flood', label: 'Flood' },
                     { value: 'earthquake', label: 'Earthquake' },
                     { value: 'conflict', label: 'Conflict' },
+                    { value: 'fire', label: 'Fire' },
                     { value: 'wildfire', label: 'Wildfire' },
                     { value: 'other', label: 'Other' },
                   ]}

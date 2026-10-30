@@ -8,7 +8,7 @@ import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import type { CrisisType } from '@/lib/types';
 import { MatataIcon } from '@/components/layout/MatataIcon';
 
-const CRISIS_TYPES: CrisisType[] = ['flood', 'earthquake', 'wildfire', 'conflict', 'other'];
+const CRISIS_TYPES: CrisisType[] = ['flood', 'fire', 'earthquake', 'wildfire', 'conflict', 'other'];
 
 export default function Page() {
   const { locale } = useLanguage();

@@ -35,6 +35,8 @@ export default function AnalystReportDetailPage({
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+  const [infoText, setInfoText] = useState('');
+  const [requestingInfo, setRequestingInfo] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [overridingSeverity, setOverridingSeverity] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('inaccurate');
@@ -132,6 +134,38 @@ export default function AnalystReportDetailPage({
     setAddingNote(false);
   }
 
+  async function requestInfo() {
+    const message = infoText.trim();
+    if (!message) return;
+    setRequestingInfo(true);
+    try {
+      const res = await analystApi.requestInfo(id, message);
+      setReport(prev =>
+        prev
+          ? {
+              ...prev,
+              info_request_message: res.info_request_message,
+              info_requested_at: res.info_requested_at,
+              reporter_followup: null,
+              info_responded_at: null,
+              notes: [
+                ...(prev.notes || []),
+                {
+                  id: `info-${Date.now()}`,
+                  body: `Asked the reporter for more information: ${res.info_request_message}`,
+                  created_at: res.info_requested_at,
+                },
+              ],
+            }
+          : prev
+      );
+      setInfoText('');
+    } catch {
+      setError('Could not send the request. Only reports still awaiting review can be sent back.');
+    }
+    setRequestingInfo(false);
+  }
+
   async function confirmPendingMerge() {
     setMergeActing(true);
     try {
@@ -207,6 +241,9 @@ export default function AnalystReportDetailPage({
       ),
     },
     { label: 'Trust tier', value: `Level ${report.reporter_trust_tier}` },
+    ...(report.field_reporter_code
+      ? [{ label: 'Field reporter', value: <span className="font-mono">{report.field_reporter_code}</span> }]
+      : []),
     {
       label: 'Photo status',
       value: <span className="capitalize">{report.photo_status.replace(/_/g, ' ')}</span>,
@@ -216,9 +253,26 @@ export default function AnalystReportDetailPage({
       value: <span className="capitalize">{report.electricity_status?.replace(/_/g, ' ') || '—'}</span>,
     },
     {
-      label: 'Health services',
-      value: <span className="capitalize">{report.health_services_status || '—'}</span>,
+      label: 'Medical help needed',
+      value:
+        report.medical_help_needed === 'urgent' ? (
+          <Chip className="border border-red-200 bg-red-50 normal-case text-red-700">Yes, urgent</Chip>
+        ) : report.medical_help_needed === 'not_urgent' ? (
+          'Yes, not urgent'
+        ) : report.medical_help_needed === 'none' ? (
+          'No'
+        ) : (
+          '—'
+        ),
     },
+    ...(report.health_services_status
+      ? [
+          {
+            label: 'Health services (old question)',
+            value: <span className="capitalize">{report.health_services_status}</span>,
+          },
+        ]
+      : []),
     {
       label: 'Debris clearing',
       value:
@@ -397,6 +451,56 @@ export default function AnalystReportDetailPage({
               </ol>
             </Panel>
           )}
+
+          {/* Ask the reporter for more information */}
+          <Panel
+            title="Ask the Reporter"
+            description="Send the reporter a short question. They see it in My reports and can add details or a photo. Their original report is never changed."
+          >
+            {report.info_requested_at && (
+              <div className="mb-4 space-y-2">
+                <div className="rounded bg-[#F7F8FA] p-3">
+                  <p className="text-xs font-medium text-[#55606E]">
+                    Asked {formatDate(report.info_requested_at)}
+                  </p>
+                  <p className="text-sm text-[#232E3D] whitespace-pre-line">{report.info_request_message}</p>
+                </div>
+                {report.info_responded_at ? (
+                  <div className="rounded border border-[#B5D5F5] bg-[#B5D5F5]/20 p-3">
+                    <p className="text-xs font-medium text-[#55606E]">
+                      Reporter answered {formatDate(report.info_responded_at)}
+                    </p>
+                    <p className="text-sm text-[#232E3D] whitespace-pre-line">{report.reporter_followup}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#55606E]">Waiting for the reporter to answer.</p>
+                )}
+              </div>
+            )}
+            {report.status === 'pending' || report.status === 'pending_merge_review' ? (
+              <div className="flex items-start gap-2">
+                <textarea
+                  rows={2}
+                  maxLength={1000}
+                  aria-label="Question for the reporter"
+                  className="flex-1 rounded border border-[#EDEFF0] px-3 py-2 text-sm focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
+                  placeholder="e.g. Please add a photo of the whole building."
+                  value={infoText}
+                  onChange={e => setInfoText(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  loading={requestingInfo}
+                  onClick={requestInfo}
+                  disabled={infoText.trim().length < 3}
+                >
+                  {report.info_requested_at ? 'Ask again' : 'Send'}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-[#55606E]">Only reports still awaiting review can be sent back to the reporter.</p>
+            )}
+          </Panel>
 
           {/* Notes */}
           <Panel title="Analyst Notes">
