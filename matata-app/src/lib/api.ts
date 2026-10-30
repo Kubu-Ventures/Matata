@@ -244,6 +244,22 @@ export const gisApi = {
   /** Best footprint match for a GPS fix, plus up to three nearby candidates. */
   matchBuilding: (lat: number, lng: number, accuracy_m?: number | null) =>
     request<BuildingMatchResponse>(`/gis/building/match${toQueryString({ lat, lng, accuracy_m })}`),
+  /** Every health facility as compact rows, saved on the phone for offline use. */
+  allHealthFacilities: () =>
+    request<{ fields: string[]; items: [string | null, string, number, number, string | null][]; attribution: string }>(
+      '/gis/health-facilities/all',
+    ),
+  /** Building footprints in a small box (at most ~1.1 km a side), saved for offline use. */
+  buildingsInBox: (min_lat: number, min_lng: number, max_lat: number, max_lng: number) =>
+    request<{ fields: string[]; items: [string, string, string][]; truncated: boolean }>(
+      `/gis/buildings${toQueryString({ min_lat, min_lng, max_lat, max_lng })}`,
+    ),
+  /** Areas to save in advance: all active areas, plus the caller's home areas. */
+  offlineAreas: () =>
+    request<{
+      areas: { id: string; name: string; kind: 'home' | 'risk'; bbox: [number, number, number, number] }[];
+      home_area_ids: string[];
+    }>('/gis/offline-areas'),
   /** Nearest hospitals, clinics and health centres (OpenStreetMap), nearest first. */
   nearbyHealthFacilities: (lat: number, lng: number, limit = 3) =>
     request<{ items: HealthFacility[]; attribution: string }>(

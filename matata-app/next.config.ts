@@ -39,6 +39,19 @@ export default withPWA({
   workboxOptions: {
     disableDevLogs: true,
     runtimeCaching: [
+      // Map squares the reporter has already viewed, kept so the building
+      // picker still has a street map there when the network drops. Only
+      // tiles shown on screen are cached; OSM's tile policy forbids bulk
+      // pre-downloading from its servers.
+      {
+        urlPattern: /^https:\/\/[a-c]?\.?tile\.openstreetmap\.org\/.*/,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'osm-tiles',
+          expiration: { maxEntries: 1500, maxAgeSeconds: 30 * 24 * 60 * 60 },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
       {
         urlPattern: ({ request }) => request.mode === 'navigate', // now inferred correctly
         handler: 'NetworkFirst',

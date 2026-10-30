@@ -219,4 +219,6 @@ export const am: Record<TranslationKey, string> = {
   'info.add_photo': 'ፎቶ ያክሉ ወይም ይቀይሩ',
   'info.error': 'መልስዎን መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።',
   'info.your_answer': 'የእርስዎ መልስ',
+  'report.building_offline_saved': 'ከመስመር ውጭ ነዎት። እነዚህ ሕንፃዎች ቀደም ብለው በስልክዎ ላይ ተቀምጠዋል፤ የመንገድ ካርታው ላይታይ ይችላል።',
+  'report.facilities_offline': 'ከመስመር ውጭ ነዎት። ይህ ዝርዝር በስልክዎ ላይ ተቀምጧል፤ ተቋሙ ክፍት መሆኑን ያረጋግጡ።',
 };

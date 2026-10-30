@@ -219,4 +219,6 @@ export const es: Record<TranslationKey, string> = {
   'info.add_photo': 'Añadir o reemplazar foto',
   'info.error': 'No se pudo enviar su respuesta. Inténtelo de nuevo.',
   'info.your_answer': 'Su respuesta',
+  'report.building_offline_saved': 'Está sin conexión. Estos edificios se guardaron antes en su teléfono; el mapa de calles puede no mostrarse.',
+  'report.facilities_offline': 'Está sin conexión. Esta lista se guardó en su teléfono; compruebe que el centro esté abierto.',
 };

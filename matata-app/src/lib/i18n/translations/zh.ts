@@ -219,4 +219,6 @@ export const zh: Record<TranslationKey, string> = {
   'info.add_photo': '添加或更换照片',
   'info.error': '无法发送您的回复，请重试。',
   'info.your_answer': '您的回复',
+  'report.building_offline_saved': '您处于离线状态。这些建筑此前已保存在您的手机上，街道地图可能无法显示。',
+  'report.facilities_offline': '您处于离线状态。此列表已保存在您的手机上，请确认该机构正在营业。',
 };

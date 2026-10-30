@@ -5,6 +5,7 @@ import { PrivyClientProvider } from '@/components/PrivyClientProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import SyncManager from '@/components/ui/SyncManager';
+import OfflineDataPrefetcher from '@/components/ui/OfflineDataPrefetcher';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
 
 const inter = Inter({
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PrivyClientProvider>
           <LanguageProvider>
             <SyncManager />
+            <OfflineDataPrefetcher />
             <OfflineBanner />
             <InstallPrompt />
             {children}

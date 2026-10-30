@@ -219,4 +219,6 @@ export const so: Record<TranslationKey, string> = {
   'info.add_photo': 'Ku dar ama beddel sawirka',
   'info.error': 'Jawaabtaada lama diri karin. Fadlan mar kale isku day.',
   'info.your_answer': 'Jawaabtaada',
+  'report.building_offline_saved': 'Khadka kama jirtid. Dhismayaashan horay ayaa loogu kaydiyay taleefankaaga; khariidadda waddooyinku may muuqan karto.',
+  'report.facilities_offline': 'Khadka kama jirtid. Liiskan waxaa lagu kaydiyay taleefankaaga; hubi in xaruntu furan tahay.',
 };
