@@ -18,21 +18,31 @@ export default function OfflineDataPrefetcher() {
   useEffect(() => {
     let cancelled = false;
 
+    // Area downloads are only marked done once they succeed, so a failed
+    // attempt (no signal, server down) is retried the next time.
+    function areaCheckDue(): boolean {
+      try {
+        return Date.now() - Number(localStorage.getItem(AREA_CHECK_KEY) || 0) >= AREA_CHECK_INTERVAL_MS;
+      } catch {
+        return true;
+      }
+    }
+    function syncAreas(lat: number | null, lng: number | null) {
+      if (!areaCheckDue()) return;
+      syncOfflineAreas(lat, lng)
+        .then(() => {
+          try {
+            localStorage.setItem(AREA_CHECK_KEY, String(Date.now()));
+          } catch {
+            /* ignore */
+          }
+        })
+        .catch(() => {});
+    }
+
     async function run() {
       if (cancelled || !navigator.onLine) return;
       refreshFacilities().catch(() => {});
-
-      try {
-        const last = Number(localStorage.getItem(AREA_CHECK_KEY) || 0);
-        if (Date.now() - last < AREA_CHECK_INTERVAL_MS) return;
-      } catch {
-        /* storage unavailable: carry on */
-      }
-      try {
-        localStorage.setItem(AREA_CHECK_KEY, String(Date.now()));
-      } catch {
-        /* ignore */
-      }
 
       // Location, only if the reporter already allowed it; never prompt.
       let granted = false;
@@ -47,20 +57,20 @@ export default function OfflineDataPrefetcher() {
       if (cancelled) return;
       if (!granted) {
         // Home areas don't need a location.
-        syncOfflineAreas(null, null).catch(() => {});
+        syncAreas(null, null);
         return;
       }
       navigator.geolocation.getCurrentPosition(
         pos => {
           if (cancelled) return;
           const { latitude, longitude } = pos.coords;
+          // Every time: tiles saved in the last 30 days are skipped, so this
+          // costs nothing when the reporter hasn't moved.
           prefetchBuildingsAround(latitude, longitude)
-            .then(() => syncOfflineAreas(latitude, longitude))
-            .catch(() => {});
+            .catch(() => {})
+            .then(() => syncAreas(latitude, longitude));
         },
-        () => {
-          syncOfflineAreas(null, null).catch(() => {});
-        },
+        () => syncAreas(null, null),
         { enableHighAccuracy: false, maximumAge: 30 * 60 * 1000, timeout: 20000 },
       );
     }
