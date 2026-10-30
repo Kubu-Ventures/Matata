@@ -219,4 +219,6 @@ export const fr: Record<TranslationKey, string> = {
   'info.add_photo': 'Ajouter ou remplacer la photo',
   'info.error': 'Impossible d\'envoyer votre réponse. Veuillez réessayer.',
   'info.your_answer': 'Votre réponse',
+  'report.building_offline_saved': 'Vous êtes hors ligne. Ces bâtiments ont été enregistrés sur votre téléphone ; le fond de carte peut ne pas s\'afficher.',
+  'report.facilities_offline': 'Vous êtes hors ligne. Cette liste a été enregistrée sur votre téléphone ; vérifiez que l\'établissement est ouvert.',
 };

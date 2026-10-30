@@ -219,4 +219,6 @@ export const ru: Record<TranslationKey, string> = {
   'info.add_photo': 'Добавить или заменить фото',
   'info.error': 'Не удалось отправить ответ. Попробуйте ещё раз.',
   'info.your_answer': 'Ваш ответ',
+  'report.building_offline_saved': 'Вы не в сети. Эти здания были сохранены на телефоне ранее; карта улиц может не отображаться.',
+  'report.facilities_offline': 'Вы не в сети. Этот список сохранён на телефоне; убедитесь, что учреждение открыто.',
 };

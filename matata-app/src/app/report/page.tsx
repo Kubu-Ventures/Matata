@@ -8,6 +8,12 @@ import { authApi, gisApi, reportsApi } from '@/lib/api';
 import { saveAuth, getToken } from '@/lib/auth';
 import { addToQueue } from '@/lib/offline';
 import { compressPhoto } from '@/lib/image';
+import {
+  bearingArrow,
+  nearestSavedFacilities,
+  prefetchBuildingsAround,
+  savedBuildingCandidates,
+} from '@/lib/offlineData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
@@ -133,40 +139,54 @@ function NearbyFacilities({
   online: boolean;
 }) {
   // Results are keyed by location, so a stale answer is never shown and no
-  // state has to be reset when the location changes.
-  const key = lat !== null && lng !== null && online ? `${lat},${lng}` : null;
+  // state has to be reset when the location changes. Offline, or if the
+  // request fails, the list saved on the phone is used instead.
+  const key = lat !== null && lng !== null ? `${lat},${lng},${online}` : null;
   const [result, setResult] = useState<{
     key: string;
-    items: HealthFacility[] | null;
+    items: (HealthFacility & { bearing_deg?: number })[] | null;
     attribution: string;
+    saved: boolean;
   } | null>(null);
 
   useEffect(() => {
     if (key === null || lat === null || lng === null) return;
     let cancelled = false;
-    gisApi
-      .nearbyHealthFacilities(lat, lng, 3)
-      .then(res => {
-        if (!cancelled) setResult({ key, items: res.items, attribution: res.attribution });
-      })
-      .catch(() => {
-        if (!cancelled) setResult({ key, items: null, attribution: '' });
+    const fromSaved = () =>
+      nearestSavedFacilities(lat, lng, 3).then(saved => {
+        if (cancelled) return;
+        setResult(
+          saved
+            ? { key, items: saved.items, attribution: saved.attribution, saved: true }
+            : { key, items: null, attribution: '', saved: true },
+        );
       });
+    if (!online) {
+      fromSaved();
+    } else {
+      gisApi
+        .nearbyHealthFacilities(lat, lng, 3)
+        .then(res => {
+          if (!cancelled) setResult({ key, items: res.items, attribution: res.attribution, saved: false });
+        })
+        .catch(() => fromSaved());
+    }
     return () => {
       cancelled = true;
     };
-  }, [key, lat, lng]);
+  }, [key, lat, lng, online]);
 
   const current = result && result.key === key ? result : null;
   const loading = key !== null && current === null;
   const items = current?.items ?? null;
   const attribution = current?.attribution ?? '';
+  const fromSavedList = current?.saved ?? false;
 
   const formatDistance = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`);
 
   return (
     <div className="mt-3 rounded-lg border border-[#EDEFF0] p-3 space-y-2">
-      {lat !== null && online && (
+      {lat !== null && (
         <>
           <p className="text-sm font-medium text-[#232E3D]">{t(locale, 'report.facilities_title')}</p>
           {loading ? (
@@ -191,20 +211,29 @@ function NearbyFacilities({
                       )}
                     </div>
                   </div>
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 text-xs font-medium text-[#006EB5] hover:underline"
-                  >
-                    {t(locale, 'report.facilities_directions')}
-                  </a>
+                  {online ? (
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-xs font-medium text-[#006EB5] hover:underline"
+                    >
+                      {t(locale, 'report.facilities_directions')}
+                    </a>
+                  ) : f.bearing_deg !== undefined ? (
+                    <span className="shrink-0 text-lg leading-none text-[#006EB5]" aria-hidden="true">
+                      {bearingArrow(f.bearing_deg)}
+                    </span>
+                  ) : null}
                 </li>
               ))}
             </ul>
           ) : items ? (
             <p className="text-xs text-[#55606E]">{t(locale, 'report.facilities_none')}</p>
           ) : null}
+          {fromSavedList && items && items.length > 0 && (
+            <p className="text-xs text-[#55606E]">{t(locale, 'report.facilities_offline')}</p>
+          )}
           {attribution && items && items.length > 0 && (
             <p className="text-[10px] text-[#55606E]">{attribution}</p>
           )}
@@ -240,6 +269,9 @@ export default function ReportPage() {
     fixKey: string;
     candidates: BuildingCandidate[];
     failed: boolean;
+    /** 'saved' = matched on the phone from saved outlines (offline);
+     *  'none' = offline and nothing saved for this spot. */
+    source: 'server' | 'saved' | 'none';
   } | null>(null);
   // Rendered inline instead of via router.push once a report is queued
   // offline: a route change needs a network fetch for the destination
@@ -290,28 +322,46 @@ export default function ReportPage() {
   const { lat, lng, gps_accuracy_m } = form;
   const fixKey = lat !== null && lng !== null ? `${lat},${lng},${gps_accuracy_m}` : null;
   useEffect(() => {
-    if (lat === null || lng === null || !isOnline) return;
+    if (lat === null || lng === null) return;
     const key = `${lat},${lng},${gps_accuracy_m}`;
     let cancelled = false;
-    gisApi
-      .matchBuilding(lat, lng, gps_accuracy_m)
-      .then(res => {
-        if (!cancelled) setCandidateResult({ fixKey: key, candidates: res.candidates ?? [], failed: false });
-      })
-      .catch(() => {
-        if (!cancelled) setCandidateResult({ fixKey: key, candidates: [], failed: true });
+
+    // Offline, or the network failed: match against the outlines saved on
+    // the phone, using the same rules as the server.
+    const fromSaved = (failedOnline: boolean) =>
+      savedBuildingCandidates(lat, lng, gps_accuracy_m).then(saved => {
+        if (cancelled) return;
+        if (saved) setCandidateResult({ fixKey: key, candidates: saved, failed: false, source: 'saved' });
+        else setCandidateResult({ fixKey: key, candidates: [], failed: failedOnline, source: 'none' });
       });
+
+    if (!isOnline) {
+      fromSaved(false);
+    } else {
+      gisApi
+        .matchBuilding(lat, lng, gps_accuracy_m)
+        .then(res => {
+          if (!cancelled)
+            setCandidateResult({ fixKey: key, candidates: res.candidates ?? [], failed: false, source: 'server' });
+        })
+        .catch(() => fromSaved(true));
+      // Save the outlines around this spot for next time the network drops.
+      prefetchBuildingsAround(lat, lng).catch(() => {});
+    }
     return () => {
       cancelled = true;
     };
   }, [lat, lng, gps_accuracy_m, isOnline]);
   const currentResult = candidateResult && candidateResult.fixKey === fixKey ? candidateResult : null;
   const candidates = currentResult?.candidates ?? [];
-  const candidatesState: 'loading' | 'ready' | 'error' = !currentResult
+  const candidatesState: 'loading' | 'ready' | 'error' | 'unavailable' = !currentResult
     ? 'loading'
-    : currentResult.failed
-      ? 'error'
-      : 'ready';
+    : currentResult.source === 'none' && !currentResult.failed
+      ? 'unavailable'
+      : currentResult.failed
+        ? 'error'
+        : 'ready';
+  const candidatesFromSaved = currentResult?.source === 'saved';
 
   // Stop the camera stream on unmount so the light/hardware indicator
   // doesn't stay on if the reporter navigates away mid-capture.
@@ -630,14 +680,19 @@ export default function ReportPage() {
                   )}
                 </div>
 
-                {!isOnline && <p className="text-sm text-[#55606E]">{t(locale, 'report.building_offline')}</p>}
-                {isOnline && candidatesState === 'loading' && (
+                {candidatesState === 'unavailable' && (
+                  <p className="text-sm text-[#55606E]">{t(locale, 'report.building_offline')}</p>
+                )}
+                {candidatesFromSaved && (
+                  <p className="text-xs text-[#55606E]">{t(locale, 'report.building_offline_saved')}</p>
+                )}
+                {candidatesState === 'loading' && (
                   <p className="text-sm text-[#55606E]">{t(locale, 'report.building_loading')}</p>
                 )}
-                {isOnline && candidatesState === 'error' && (
+                {candidatesState === 'error' && (
                   <p className="text-sm text-[#55606E]">{t(locale, 'report.building_error')}</p>
                 )}
-                {isOnline && candidatesState === 'ready' && candidates.length === 0 && (
+                {candidatesState === 'ready' && candidates.length === 0 && (
                   <>
                     <p className="text-sm text-[#55606E]">{t(locale, 'report.building_empty')}</p>
                     <div role="radiogroup" aria-label={t(locale, 'report.building_title')}>
@@ -646,7 +701,7 @@ export default function ReportPage() {
                   </>
                 )}
 
-                {isOnline && candidatesState === 'ready' && candidates.length > 0 && (
+                {candidatesState === 'ready' && candidates.length > 0 && (
                   <>
                     <BuildingPickerMap
                       lat={form.lat}

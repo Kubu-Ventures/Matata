@@ -219,4 +219,6 @@ export const sw: Record<TranslationKey, string> = {
   'info.add_photo': 'Ongeza au badilisha picha',
   'info.error': 'Imeshindwa kutuma jibu lako. Tafadhali jaribu tena.',
   'info.your_answer': 'Jibu lako',
+  'report.building_offline_saved': 'Uko nje ya mtandao. Majengo haya yalihifadhiwa kwenye simu yako awali; ramani ya barabara huenda isionekane.',
+  'report.facilities_offline': 'Uko nje ya mtandao. Orodha hii ilihifadhiwa kwenye simu yako; hakikisha kituo kiko wazi.',
 };

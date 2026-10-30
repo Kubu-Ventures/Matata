@@ -217,6 +217,8 @@ export const en = {
   'info.add_photo': 'Add or replace photo',
   'info.error': 'Could not send your answer. Please try again.',
   'info.your_answer': 'Your answer',
+  'report.building_offline_saved': 'You\'re offline. These buildings were saved on your phone earlier; the street map may not show.',
+  'report.facilities_offline': 'You\'re offline. This list was saved on your phone; check the facility is open.',
 };
 
 export type TranslationKey = keyof typeof en;

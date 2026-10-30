@@ -219,4 +219,6 @@ export const ar: Record<TranslationKey, string> = {
   'info.add_photo': 'إضافة صورة أو استبدالها',
   'info.error': 'تعذر إرسال ردك. يرجى المحاولة مرة أخرى.',
   'info.your_answer': 'ردك',
+  'report.building_offline_saved': 'أنت غير متصل. تم حفظ هذه المباني على هاتفك سابقاً، وقد لا تظهر خريطة الشوارع.',
+  'report.facilities_offline': 'أنت غير متصل. تم حفظ هذه القائمة على هاتفك، تأكد من أن المرفق مفتوح.',
 };

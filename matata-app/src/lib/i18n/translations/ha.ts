@@ -219,4 +219,6 @@ export const ha: Record<TranslationKey, string> = {
   'info.add_photo': 'Kara ko canza hoto',
   'info.error': 'Ba a iya aika amsarka ba. Don Allah sake gwadawa.',
   'info.your_answer': 'Amsarka',
+  'report.building_offline_saved': 'Ba ka da intanet. An adana waɗannan gine-gine a wayarka a baya; taswirar tituna ba za ta bayyana ba.',
+  'report.facilities_offline': 'Ba ka da intanet. An adana wannan jerin a wayarka; tabbatar cibiyar a buɗe take.',
 };
