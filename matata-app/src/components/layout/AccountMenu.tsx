@@ -6,6 +6,7 @@ import { authApi } from '@/lib/api';
 import { clearPrivySession } from '@/components/PrivyClientProvider';
 import { getRole, clearAuth } from '@/lib/auth';
 import type { Role } from '@/lib/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * Small header widget for the public-facing (non-analyst) app that reflects
@@ -19,6 +20,7 @@ import type { Role } from '@/lib/types';
 export function AccountMenu() {
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     setRole(getRole());
@@ -50,7 +52,7 @@ export function AccountMenu() {
         href="/login"
         className="text-xs font-medium text-[#006EB5] hover:underline whitespace-nowrap"
       >
-        Sign in
+        {t('nav.sign_in')}
       </Link>
     );
   }
@@ -58,14 +60,14 @@ export function AccountMenu() {
   return (
     <div className="flex items-center gap-3 whitespace-nowrap">
       <Link href="/my-reports" className="text-xs font-medium text-[#006EB5] hover:underline">
-        My reports
+        {t('nav.my_reports')}
       </Link>
       <button
         type="button"
         onClick={handleLogout}
         className="text-xs font-medium text-[#55606E] hover:text-[#232E3D] transition-colors"
       >
-        Sign out
+        {t('nav.sign_out')}
       </button>
     </div>
   );
