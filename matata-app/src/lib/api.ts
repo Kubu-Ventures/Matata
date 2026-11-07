@@ -352,6 +352,15 @@ export const adminApi = {
       method: 'PATCH',
       body: JSON.stringify({ label }),
     }),
+  /**
+   * Limit an analyst or responder to an area (GeoJSON), or pass null to let
+   * an analyst cover all areas. Takes effect the next time they sign in.
+   */
+  updateAccountArea: (id: string, region_geojson: string | null) =>
+    request<AdminAccount>(`/auth/analyst/accounts/${id}/area`, {
+      method: 'PUT',
+      body: JSON.stringify({ region_geojson }),
+    }),
   deactivateAccount: (id: string) =>
     request<{ message: string }>(`/auth/analyst/accounts/${id}`, { method: 'DELETE' }),
 };
