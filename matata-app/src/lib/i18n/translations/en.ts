@@ -219,6 +219,17 @@ export const en = {
   'info.your_answer': 'Your answer',
   'report.building_offline_saved': 'You\'re offline. These buildings were saved on your phone earlier; the street map may not show.',
   'report.facilities_offline': 'You\'re offline. This list was saved on your phone; check the facility is open.',
+  'nav.my_reports': 'My reports',
+  'myreports.subtitle': 'Reports you\'ve submitted, newest first.',
+  'myreports.anon_notice': 'You\'re reporting anonymously. This list only shows reports from your current session and will reset once it expires.',
+  'myreports.anon_link': 'Sign in with your email',
+  'myreports.anon_after': 'to keep permanent access to your report history.',
+  'myreports.empty': 'You haven\'t submitted any reports yet.',
+  'myreports.submit': 'Submit a report',
+  'myreports.load_error': 'Could not load your reports.',
+  'myreports.previous': '← Previous',
+  'myreports.next': 'Next →',
+  'myreports.page_of': 'Page {page} of {total}',
 };
 
 export type TranslationKey = keyof typeof en;

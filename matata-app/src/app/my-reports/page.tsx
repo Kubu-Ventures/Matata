@@ -9,15 +9,40 @@ import { AccountMenu } from '@/components/layout/AccountMenu';
 import type { Report, PaginatedOwnReports, Role } from '@/lib/types';
 import { MatataIcon } from '@/components/layout/MatataIcon';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { t } from '@/lib/i18n';
+import { t, type Locale, type TranslationKey } from '@/lib/i18n';
 
 const LIMIT = 20;
+
+// Report values come from the API in English; show them in the reader's language.
+const STATUS_KEYS: Record<string, TranslationKey> = {
+  pending: 'status.received',
+  verified: 'status.verified',
+  rejected: 'status.rejected',
+  duplicate: 'status.duplicate',
+  pending_merge_review: 'status.pending_merge_review',
+};
+const SEVERITY_KEYS: Record<string, TranslationKey> = {
+  minimal: 'report.severity_minimal_label',
+  partial: 'report.severity_partial_label',
+  destroyed: 'report.severity_destroyed_label',
+};
+
+function label(locale: Locale, key: string, map: Record<string, TranslationKey>): string {
+  return map[key] ? t(locale, map[key]) : key.replace(/_/g, ' ');
+}
+
+/** Crisis and infrastructure types use `crisis.*` / `infra.*` keys named after the API value. */
+function typeLabel(locale: Locale, prefix: 'crisis' | 'infra', value: string): string {
+  const key = `${prefix}.${value}`;
+  const text = t(locale, key as TranslationKey);
+  return text === key ? value.replace(/_/g, ' ') : text;
+}
 
 export default function MyReportsPage() {
   const [data, setData] = useState<PaginatedOwnReports | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
   const { locale } = useLanguage();
 
@@ -31,11 +56,11 @@ export default function MyReportsPage() {
       return;
     }
     setLoading(true);
-    setError('');
+    setLoadFailed(false);
     reportsApi
       .list(page, LIMIT)
       .then(setData)
-      .catch(() => setError('Could not load your reports.'))
+      .catch(() => setLoadFailed(true))
       .finally(() => setLoading(false));
   }, [page]);
 
@@ -56,18 +81,17 @@ export default function MyReportsPage() {
 
       <div className="max-w-xl mx-auto w-full px-4 py-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#232E3D] mb-1">My Reports</h1>
-          <p className="text-sm text-[#55606E]">Reports you&apos;ve submitted, newest first.</p>
+          <h1 className="text-2xl font-bold text-[#232E3D] mb-1">{t(locale, 'nav.my_reports')}</h1>
+          <p className="text-sm text-[#55606E]">{t(locale, 'myreports.subtitle')}</p>
         </div>
 
         {isAnonymous && (
           <div className="bg-[#FBC412]/10 border border-[#FBC412]/30 rounded-lg p-4 text-sm text-[#232E3D]">
-            You&apos;re reporting anonymously. This list only shows reports from your
-            current session and will reset once it expires.{' '}
+            {t(locale, 'myreports.anon_notice')}{' '}
             <Link href="/login" className="text-[#006EB5] hover:underline font-medium">
-              Sign in with your email
+              {t(locale, 'myreports.anon_link')}
             </Link>{' '}
-            to keep permanent access to your report history.
+            {t(locale, 'myreports.anon_after')}
           </div>
         )}
 
@@ -75,18 +99,18 @@ export default function MyReportsPage() {
           <div className="flex justify-center py-12">
             <div className="animate-spin w-6 h-6 border-2 border-[#006EB5] border-t-transparent rounded-full" />
           </div>
-        ) : error ? (
-          <p className="text-sm text-[#EE402D]">{error}</p>
+        ) : loadFailed ? (
+          <p className="text-sm text-[#EE402D]">{t(locale, 'myreports.load_error')}</p>
         ) : !data?.items.length ? (
           <div className="text-center py-12">
             <p className="text-sm text-[#55606E] mb-4">
-              You haven&apos;t submitted any reports yet.
+              {t(locale, 'myreports.empty')}
             </p>
             <Link
               href="/report"
               className="inline-flex items-center justify-center px-4 py-2.5 bg-[#006EB5] text-white text-sm font-medium rounded hover:bg-[#005a94] transition-colors"
             >
-              Submit a report
+              {t(locale, 'myreports.submit')}
             </Link>
           </div>
         ) : (
@@ -111,18 +135,18 @@ export default function MyReportsPage() {
                       <span
                         className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${statusColors[report.status]}`}
                       >
-                        {report.status.replace(/_/g, ' ')}
+                        {label(locale, report.status, STATUS_KEYS)}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-[#232E3D] capitalize">
-                      {report.crisis_type} · {report.infrastructure_type}
+                      {typeLabel(locale, 'crisis', report.crisis_type)} · {typeLabel(locale, 'infra', report.infrastructure_type)}
                     </span>
                     <span
                       className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize ${severityColors[report.damage_severity]}`}
                     >
-                      {report.damage_severity}
+                      {label(locale, report.damage_severity, SEVERITY_KEYS)}
                     </span>
                   </div>
                   <p className="text-xs text-[#55606E] mt-2">{formatDate(report.created_at)}</p>
@@ -138,10 +162,10 @@ export default function MyReportsPage() {
                   onClick={() => setPage(p => p - 1)}
                   className="text-sm text-[#006EB5] disabled:text-[#55606E] disabled:opacity-50"
                 >
-                  ← Previous
+                  {t(locale, 'myreports.previous')}
                 </button>
                 <span className="text-xs text-[#55606E]">
-                  Page {page} of {totalPages}
+                  {t(locale, 'myreports.page_of', { page, total: totalPages })}
                 </span>
                 <button
                   type="button"
@@ -149,7 +173,7 @@ export default function MyReportsPage() {
                   onClick={() => setPage(p => p + 1)}
                   className="text-sm text-[#006EB5] disabled:text-[#55606E] disabled:opacity-50"
                 >
-                  Next →
+                  {t(locale, 'myreports.next')}
                 </button>
               </div>
             )}
