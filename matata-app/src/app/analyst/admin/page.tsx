@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ShieldAlert, Users } from 'lucide-react';
+import { MapPin, ShieldAlert, Users } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
@@ -16,8 +16,92 @@ import {
   fieldInputClass,
   fieldLabelClass,
 } from '@/components/analyst/ui';
+import AreaPicker from '@/components/analyst/AreaPicker';
 import { adminApi } from '@/lib/api';
+import { boxesToRegion, boxesToText, describeRegion, parseBoxes, regionToBoxes } from '@/lib/area';
 import type { AdminAccount } from '@/lib/types';
+
+type AreaMode = 'all' | 'limited';
+
+/**
+ * Turn the area inputs into what the API expects: undefined/null for all
+ * areas, a GeoJSON string for a limited area, or an error to show.
+ */
+function resolveArea(role: string, mode: AreaMode, text: string): { region: string | null } | { error: string } {
+  if (role === 'admin') return { region: null };
+  const limited = role === 'responder' || mode === 'limited';
+  if (!limited) return { region: null };
+  const { boxes, errors } = parseBoxes(text);
+  if (errors.length) return { error: 'Fix the area boxes first: ' + errors.join(' ') };
+  if (boxes.length === 0) {
+    return {
+      error:
+        role === 'responder'
+          ? 'A responder must be limited to an area. Add at least one box.'
+          : 'Add at least one box, or choose "All areas".',
+    };
+  }
+  return { region: boxesToRegion(boxes) };
+}
+
+/** Area choice shared by the new-account form and the edit panel. */
+function AreaFields({
+  name,
+  role,
+  mode,
+  onModeChange,
+  text,
+  onTextChange,
+  customRegion,
+}: {
+  /** Groups this instance's radio buttons. */
+  name: string;
+  role: string;
+  mode: AreaMode;
+  onModeChange: (m: AreaMode) => void;
+  text: string;
+  onTextChange: (t: string) => void;
+  customRegion?: string | null;
+}) {
+  if (role === 'admin') {
+    return <p className="text-xs text-[#55606E]">Admins always cover all areas.</p>;
+  }
+  const limited = role === 'responder' || mode === 'limited';
+  return (
+    <fieldset className="space-y-2">
+      <legend className={fieldLabelClass}>Area</legend>
+      {role === 'analyst' ? (
+        <div className="flex gap-4 text-sm text-[#232E3D]">
+          <label className="inline-flex items-center gap-1.5">
+            <input type="radio" name={name} checked={mode === 'all'} onChange={() => onModeChange('all')} />
+            All areas
+          </label>
+          <label className="inline-flex items-center gap-1.5">
+            <input
+              type="radio"
+              name={name}
+              checked={mode === 'limited'}
+              onChange={() => onModeChange('limited')}
+            />
+            Limit to an area
+          </label>
+        </div>
+      ) : (
+        <p className="text-xs text-[#55606E]">A responder is always limited to an area.</p>
+      )}
+      {limited && (
+        <>
+          <p className="text-xs text-[#55606E]">
+            {role === 'responder'
+              ? 'They will only see and download reports inside this area.'
+              : 'They will only see, verify and download reports inside this area.'}
+          </p>
+          <AreaPicker value={text} onChange={onTextChange} customRegion={customRegion} />
+        </>
+      )}
+    </fieldset>
+  );
+}
 
 const ROLE_BADGE: Record<string, string> = {
   admin: 'bg-[#EE402D]/10 text-[#EE402D]',
@@ -28,7 +112,8 @@ const ROLE_BADGE: Record<string, string> = {
 export default function AdminAccountsPage() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('analyst');
-  const [regionGeojson, setRegionGeojson] = useState('');
+  const [areaMode, setAreaMode] = useState<AreaMode>('all');
+  const [areaText, setAreaText] = useState('');
   const [label, setLabel] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -42,6 +127,14 @@ export default function AdminAccountsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [savingLabelId, setSavingLabelId] = useState<string | null>(null);
+
+  const [areaAccount, setAreaAccount] = useState<AdminAccount | null>(null);
+  const [editAreaMode, setEditAreaMode] = useState<AreaMode>('all');
+  const [editAreaText, setEditAreaText] = useState('');
+  const [editCustomRegion, setEditCustomRegion] = useState<string | null>(null);
+  const [savingArea, setSavingArea] = useState(false);
+  const [areaError, setAreaError] = useState('');
+  const [areaSuccess, setAreaSuccess] = useState('');
 
   async function loadAccounts() {
     setAccountsLoading(true);
@@ -63,19 +156,23 @@ export default function AdminAccountsPage() {
 
   async function handleProvision(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setSuccess('');
     setError('');
+    const area = resolveArea(role, areaMode, areaText);
+    if ('error' in area) {
+      setError(area.error);
+      return;
+    }
+    setLoading(true);
     try {
-      await adminApi.provisionUser(
-        email,
-        role,
-        role === 'responder' ? regionGeojson : undefined,
-        label.trim() || undefined
+      await adminApi.provisionUser(email, role, area.region ?? undefined, label.trim() || undefined);
+      setSuccess(
+        `Account provisioned for ${email} with role: ${role}` +
+          (area.region ? ', limited to an area' : ''),
       );
-      setSuccess(`Account provisioned for ${email} with role: ${role}`);
       setEmail('');
-      setRegionGeojson('');
+      setAreaText('');
+      setAreaMode('all');
       setLabel('');
       loadAccounts();
     } catch (err: unknown) {
@@ -111,6 +208,46 @@ export default function AdminAccountsPage() {
     }
   }
 
+  function startEditArea(account: AdminAccount) {
+    const boxes = regionToBoxes(account.region_geojson);
+    setAreaAccount(account);
+    setEditAreaMode(account.region_geojson ? 'limited' : 'all');
+    setEditAreaText(boxes ? boxesToText(boxes) : '');
+    setEditCustomRegion(boxes ? null : account.region_geojson);
+    setAreaError('');
+    setAreaSuccess('');
+  }
+
+  async function saveArea(e: React.FormEvent) {
+    e.preventDefault();
+    if (!areaAccount) return;
+    setAreaError('');
+    setAreaSuccess('');
+    let region: string | null;
+    if (editCustomRegion && editAreaText.trim() === '' && editAreaMode === 'limited') {
+      region = editCustomRegion; // unchanged custom shape
+    } else {
+      const area = resolveArea(areaAccount.role, editAreaMode, editAreaText);
+      if ('error' in area) {
+        setAreaError(area.error);
+        return;
+      }
+      region = area.region;
+    }
+    setSavingArea(true);
+    try {
+      const updated = await adminApi.updateAccountArea(areaAccount.id, region);
+      setAccounts(prev => prev.map(a => (a.id === updated.id ? updated : a)));
+      setAreaAccount(updated);
+      setAreaSuccess('Area saved. It applies the next time this person signs in.');
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string };
+      setAreaError(apiErr.message || 'Failed to save the area.');
+    } finally {
+      setSavingArea(false);
+    }
+  }
+
   async function handleDeactivate(id: string) {
     if (!window.confirm('Deactivate this account? They will no longer be able to sign in, though any active session will remain valid until it expires.')) {
       return;
@@ -132,7 +269,7 @@ export default function AdminAccountsPage() {
     <PageContainer>
       <PageHeader
         title="Account Management"
-        description="Provision analyst and responder accounts."
+        description="Provision analyst and responder accounts, and choose the area each one covers."
         meta={!accountsLoading && <span>{accounts.length} active account{accounts.length === 1 ? '' : 's'}</span>}
       />
 
@@ -163,7 +300,7 @@ export default function AdminAccountsPage() {
                     <th className="px-4 py-2.5 font-medium sm:px-5">Label</th>
                     <th className="px-4 py-2.5 font-medium">Account ID</th>
                     <th className="px-4 py-2.5 font-medium">Role</th>
-                    <th className="px-4 py-2.5 font-medium">Region</th>
+                    <th className="px-4 py-2.5 font-medium">Area</th>
                     <th className="px-4 py-2.5 font-medium sm:px-5"></th>
                   </tr>
                 </thead>
@@ -218,7 +355,16 @@ export default function AdminAccountsPage() {
                         </Chip>
                       </td>
                       <td className="px-4 py-2.5 text-[#55606E]">
-                        {account.region_geojson ? 'Scoped' : '—'}
+                        <span className="block">{describeRegion(account.region_geojson)}</span>
+                        {account.role !== 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => startEditArea(account)}
+                            className="text-xs text-[#006EB5] hover:underline"
+                          >
+                            Edit area
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-right sm:px-5">
                         <Button
@@ -287,7 +433,19 @@ export default function AdminAccountsPage() {
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xs text-[#55606E]">
-                        Region: {account.region_geojson ? 'Scoped' : '—'}
+                        {describeRegion(account.region_geojson)}
+                        {account.role !== 'admin' && (
+                          <>
+                            {' · '}
+                            <button
+                              type="button"
+                              onClick={() => startEditArea(account)}
+                              className="text-[#006EB5] hover:underline"
+                            >
+                              Edit area
+                            </button>
+                          </>
+                        )}
                       </span>
                       <Button
                         type="button"
@@ -307,6 +465,40 @@ export default function AdminAccountsPage() {
         </Panel>
 
         <div className="space-y-5">
+          {areaAccount && (
+            <Panel
+              title={
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-[#006EB5]" aria-hidden="true" />
+                  Area for {areaAccount.label || `${areaAccount.id.slice(0, 8)}…`}
+                </span>
+              }
+              description={`Role: ${areaAccount.role}`}
+            >
+              <form onSubmit={saveArea} className="space-y-4">
+                <AreaFields
+                  name="edit-area-mode"
+                  role={areaAccount.role}
+                  mode={editAreaMode}
+                  onModeChange={setEditAreaMode}
+                  text={editAreaText}
+                  onTextChange={setEditAreaText}
+                  customRegion={editCustomRegion}
+                />
+                {areaError && <Alert>{areaError}</Alert>}
+                {areaSuccess && <Alert tone="success">✓ {areaSuccess}</Alert>}
+                <div className="flex gap-2">
+                  <Button type="submit" loading={savingArea} size="md" className="flex-1">
+                    Save area
+                  </Button>
+                  <Button type="button" variant="secondary" size="md" onClick={() => setAreaAccount(null)}>
+                    Close
+                  </Button>
+                </div>
+              </form>
+            </Panel>
+          )}
+
           <Panel title="Provision New Account">
             <form onSubmit={handleProvision} className="space-y-4">
               <Input
@@ -331,30 +523,22 @@ export default function AdminAccountsPage() {
               <SelectField
                 label="Role"
                 options={[
-                  { value: 'analyst', label: 'Analyst — full triage access' },
-                  { value: 'responder', label: 'Responder — read-only regional access' },
+                  { value: 'analyst', label: 'Analyst — verifies reports' },
+                  { value: 'responder', label: 'Responder — view only, limited to an area' },
                   { value: 'admin', label: 'Admin — full administrative access' },
                 ]}
                 value={role}
                 onChange={e => setRole(e.target.value)}
               />
 
-              {role === 'responder' && (
-                <label className="block font-normal">
-                  <span className={fieldLabelClass}>Region (GeoJSON)</span>
-                  <textarea
-                    value={regionGeojson}
-                    onChange={e => setRegionGeojson(e.target.value)}
-                    placeholder='{"type": "Polygon", "coordinates": [...]}'
-                    rows={4}
-                    required
-                    className="block w-full rounded border border-[#EDEFF0] bg-white px-2.5 py-2 font-mono text-sm text-[#232E3D] placeholder:text-[#55606E] focus:border-[#006EB5] focus:outline-none focus:ring-1 focus:ring-[#006EB5]"
-                  />
-                  <span className="mt-1 block text-xs text-[#55606E]">
-                    Scopes this responder to reports within the given area. Required for the responder role.
-                  </span>
-                </label>
-              )}
+              <AreaFields
+                name="new-area-mode"
+                role={role}
+                mode={areaMode}
+                onModeChange={setAreaMode}
+                text={areaText}
+                onTextChange={setAreaText}
+              />
 
               {error && <Alert>{error}</Alert>}
               {success && <Alert tone="success">✓ {success}</Alert>}
